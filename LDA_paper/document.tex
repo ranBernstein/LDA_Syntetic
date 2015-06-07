@@ -1,0 +1,110 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{bbm}
+\title{LDA}
+\author{bernstein.ran }
+\date{May 2015}
+
+\usepackage{natbib}
+\usepackage{graphicx}
+
+\begin{document}
+
+\maketitle
+
+\section{FLD - Fisher's Linear Discriminant}
+\par Fisher's linear discriminant \cite{fisher1936use}, a method used in statistics, pattern recognition and machine learning to find a linear combination of features that characterizes or separates two or more classes of objects or events. The resulting combination may be used as a linear classifier, or, more commonly, for dimensionality reduction before later classification.
+\\\par FLD approaches the problem by assuming that the conditional probability density functions $P(\vec x|y=p)$ and $P(\vec x|y=q)$ are both normally distributed with mean and covariance parameters $\left(\vec \mu_p, S_p\right)$ and $\left(\vec \mu_q, S_q\right)$, for two target classes p and q respectively.
+%\\$w \propto (S_p+S_q)^{-1}(\mu_p - \mu_q)$
+\\Under this assumption, the Bayes optimal decision criterion is a threshold on the dot product
+\begin{equation} \label{eq:decision}
+w \cdot x > c
+\end{equation}
+for some threshold constant c, where
+\begin{equation} \label{eq:w}
+w \propto (S_p+S_q)^{-1}(\mu_p - \mu_q)
+\end{equation}
+\begin{equation} \label{eq:c}
+c = \frac{1}{2}(T-{\mu_p}^T S_p^{-1} {\mu_p}+{\mu_q}^T S_q^{-1} {\mu_q})
+\end{equation}
+
+
+\section{Monitoring FLD of Distributed Streams}
+Assume that the observations ${(x^i_j; y^i_j)}$ are distributed across k nodes, and that these observations are dynamic (they change over time, as nodes receive new observations that replace older ones. As data evolves, it is possible that the
+previously computed model no longer matches the current true model. We wish to maintain an accurate estimation $w_0$ of the current global FLD model, $w$. The question is then when to update the model.
+
+Let $w_0$ be the existing model (vector of weights of a linear classifier), previously computed at some point in the past (the synchronization time), and let $w$ be the true (if we had aggregated the current observations from all of the nodes into one place and computed the model according to it) FLD model. Given an error threshold $\tau$, our goal is to raise an alert if
+\begin{equation} \label{eq:critiria}
+%\Theta[w, w_0] > \tau
+\parallel w-w_0 \parallel \  >  T
+\end{equation}
+\subsection{Notation}
+k - number of nodes
+\\n - number of vectors in a node
+\\$x^i_j$ - the j'th vector in the i'th node
+\\$y^i_j$ - the label (p or q) of $x^i_j$
+%\\ D - sample of $n \cdot k$ labeled observations ${(x^i_j, y^i_j)}$
+\\$N_p$  - total number of observations from class p, from all of the nodes
+\\$N_q$  - total number of observations from class q, from all of the nodes
+\\$N_p^i$  - total number of observations from class p, in the i'th node
+\\$N_q^i$  - total number of observations from class q, in the i'th node
+\\
+\\$\mu^i_p := \frac{1}{N_p^i}\sum_{j=1}^{n}\mathbbm{1}{(y^i_j=p)}x^i_j
+\\\mu^i_q := \frac{1}{N_q^i}\sum_{j=1}^{n}\mathbbm{1}{(y^i_j=q)}x^i_j
+\\\mu_p := \frac{1}{N_p} \sum_{i=1}^k\sum_{j=1}^n\mathbbm{1}{(y^i_j=p)}x^i_j=\frac{1}{k}\sum_{i=1}^k\mu^i_q
+\\\mu_q := \frac{1}{N_q} \sum_{i=1}^k\sum_{j=1}^n\mathbbm{1}{(y^i_j=q)}x^i_j = \frac{1}{k}\sum_{i=1}^k\mu^i_q 
+\\
+\\S^i := \frac{1}{n}\sum_{j=1}^{n}x^i_j(x^i_j)^T
+\\S := \frac{1}{nk} \sum_{i=1}^k\sum_{j=1}^nx^i_j(x^i_j)^T=\frac{1}{k}\sum_{i=1}^kS^i$, (S is the Scatter matrix)
+\\
+\\$B:=S - \mu_p\mu_p^T - \mu_q\mu_q^T
+\\u:=\mu_p - \mu_q
+\\\mu_p:=x
+\\\mu_q:=y$
+\\\\Let w be our current true model. If we observe w as function as shown in equation~\ref{eq:w}, we can denote:
+\\$w(S,\mu_p,\mu_q) := (S - \mu_p\mu_p^T - \mu_q\mu_q^T)^{-1}(\mu_p - \mu_q)$
+\\$w(S,x,y) = (S - xx^T - yy^T)^{-1}(x-y)$
+\\\\Let $w_0$ be the existing model, previously computed from $S_0, x_0$ and $y_0$ at some point in the past (the synchronization time), then
+\begin{equation} 
+w_0:=(S_0 - x_0x_0^T - y_0y_0^T)^{-1}(x_0-y_0)
+\end{equation}
+\\\\and if $\Delta_s, \delta_x$, and $\delta_y$ are the drift vectors, we get:
+\begin{equation} \label{eq:drift}
+\\w= [S_0+\Delta_S - (x_0+\delta_x)(x_0+\delta_x)^T - (y_0+\delta_y)(y_0+\delta_y)^T]^{-1}(x_0+\delta_x-y_0-\delta_y)
+\end{equation}
+\\\\For simplicity we will denote
+$B_0:=S_0 - x_0x_0^T - y_0y_0^T$
+\\$\Delta:= \Delta_S - \delta_x\delta_x^T - \delta_y\delta_y^T - x_0\delta_x^T - \delta_xx_0^T - y_0\delta_y^T - \delta_yy_0^T
+\\\mu_0:=x_0-y_0 
+\\\delta:=\delta_x-\delta_y
+\\w_0=B_0^{-1}u_0
+\\w=(B_0+\Delta)^{-1}(\mu_0+\delta)
+\\
+\\Q:=\delta_x\delta_x^T + \delta_y\delta_y^T
+\\L:= \Delta - Q$
+\subsection{Convex Safe Zones}
+Using the notation stated above, we can write the sphere condition in terms of $B_0, \Delta, u_0$ and $\delta$:
+\\$\parallel w-w_0 \parallel \ = \ \parallel (B_0+\Delta)^{-1}(u_0+\delta) -  B_0^{-1}u_0\parallel$
+\\
+\\By Cauchy–Schwarz inequality we get:
+\\\parallel (B_0+\Delta)^{-1}(u_0+\delta) -  B_0^{-1}u_0\parallel \ \leq \ \parallel (B_0+\Delta)^{-1}(u_0+\delta)\parallel +  \parallel B_0^{-1}u_0\parallel
+\\
+\\E_1:= \ \parallel (B_0+\Delta)^{-1}\delta\parallel
+\\E_2:= \ \parallel ((B_0+\Delta)^{-1} - -B_0^{-1})u_0 \parallel$
+\\\\If we assume that $\parallel B_0^{-1}\Delta \parallel \ \leq \ 1$, then from the lemma that is proven in appendix A of "Monitoring Least Squares Models of Distributed Streams" we get:
+\\$E_1 \leq \frac{\parallel B_0^{-1}\delta\parallel}{1-\parallel B_0^{-1}\Delta \parallel}
+\\\\E_2 \leq  \frac{\parallel B_0^{-1}\delta w_0\parallel}{1-\parallel B_0^{-1}\Delta \parallel} 
+\\
+\\\parallel w-w_0 \parallel \ \leq \ E_1+E_2 = \frac{\parallel B_0^{-1}\delta \parallel + \parallel B_0^{-1}\Delta w_0 \parallel}{1 - \parallel B_0^{-1}\Delta \parallel} \ \leq \ R_0  \Rightarrow 
+\\\parallel B_0^{-1}\delta \parallel + \parallel B_0^{-1}\Delta w_0 \parallel + R_0 \parallel B_0^{-1}\Delta \parallel \ \leq \ R_0 $
+\\\\By Cauchy–Schwarz inequality we get:
+\\$\parallel B_0^{-1}\delta w_0\parallel \ \leq \ \parallel B_0^{-1}\delta \parallel \parallel w_0\parallel
+\\\parallel B_0^{-1}\Delta\parallel \ \leq \ \parallel B_0^{-1}L\parallel +\parallel  B_0^{-1}Q\parallel$
+\\\\So we can derive the new (convex?!) condition:
+\\ $\parallel B_0^{-1}\delta \parallel + \ \parallel B_0^{-1}\delta \parallel \parallel w_0\parallel + R_0( \parallel B_0^{-1}L\parallel +\parallel  B_0^{-1}Q\parallel) \ \leq \ R_0$
+
+
+
+\bibliographystyle{plain}
+\bibliography{references}
+\end{document}
