@@ -17,7 +17,7 @@ T=0.9
 dic={}
 
 beforSyncLength = L
-timeLength=50*L
+timeLength=5*L
 dataLength = beforSyncLength + timeLength*k
 
 Ts = np.concatenate((np.linspace(0, 0.9, 20),np.linspace(0.9, 1, 20)))

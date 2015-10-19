@@ -28,6 +28,7 @@ def getCov(X):
     return np.array(1.0/numOfObserv*(X.T*X) - mu.T*mu)
 
 def getR0(w0_norm, T):
+    #return w0_norm*np.sin(np.arccos(T))
     return w0_norm*np.sqrt(1-T**2) 
 
 def FLDInner(cov_p, cov_q, mu_p, mu_q):
@@ -68,40 +69,78 @@ def getXYS(Xp, Xq):
     S = 1.0/n_p*Xp.T*Xp + 1.0/n_q*Xq.T*Xq
     return x,y,S
 
-def checkLocalConstraint(S0, x0, y0, w0_norm, B0_inverted, Xp, Xq, T):
-    x,y,S = getXYS(Xp, Xq)
-    delta_x = x - x0
-    delta_y = y - y0
+def checkLocalConstraint(localParams,  globalParams, currentData, R0):
+    a4, waste = getLeftSide(localParams,  globalParams, currentData, R0)
+    return a4 <= R0
+
+def getLeftSide(localParams,  globalParams, currentData, R0, alpha=1):
+    x0, y0, S0 = localParams
+    w0, B0, u0, w = globalParams
+    Xp, Xq = currentData
+    w0_norm = norm(w0)
+    #R0 = getR0(w0_norm, T)
+    x_i,y_i,S_i = getXYS(Xp, Xq)
+    #B0  = np.matrix(S0  - x0*x0.T - y0*y0.T)
+    B0_inverted = lin.inv(B0)
+    delta_x = x_i - x0
+    delta_y = y_i - y0
     Q = delta_x*delta_x.T + delta_y*delta_y.T
-    Delta_S = S - S0
+    Delta_S = S_i - S0
     delta = delta_x - delta_y
     L = Delta_S - x0*delta_x.T - delta_x*x0.T - y0*delta_y.T - delta_y*y0.T
-    R0 = getR0(w0_norm, T)
     a1 = norm(B0_inverted*delta)
-    a2 = w0_norm + R0
+    a2 = alpha*w0_norm + R0
     a3 = normOperator(B0_inverted*L)+normOperator(B0_inverted*Q)
-    a4 = a1 +a2*a3 
-    return a4 <= R0
+    
+    Delta = Q + L
+    B = np.matrix(S_i - x_i*x_i.T - y_i*y_i.T)
+    #u0 = x0-y0
+    E1 = norm(lin.inv(B0+Delta)*delta)
+    E2 = norm((lin.inv(B0+Delta)-B0_inverted)*u0)
+    wastes = np.zeros(6)
+    wastes[0] = E1 + E2 - norm(w- w0) 
+    a6 =     normOperator(B0_inverted*Delta)
+    denominator = 1- a6
+    a5 = norm(B0_inverted*Delta*w0)
+    wastes[4] = a3 - a6
+    if denominator > 0:
+        #wastes[3] = (a6*w0_norm - a5)/(R0*denominator)
+        wastes[3] = a6*w0_norm/a5
+        wastes[1] = \
+            norm(B0_inverted*delta)/denominator - E1
+        waste3 = a5/denominator - E2
+        a4 = a1 +a2*a3 
+    else:
+        wastes[1] = R0
+        wastes[2] = R0
+        wastes[3] = R0
+        return R0+1, wastes
+    if wastes[0] < 0:
+        pass
+    #wastes = [waste1/R0, waste2/R0, waste3/R0, waste4, waste5*(R0+w0_norm)/R0]
+    wastes[5] = np.sum(wastes)
+    return a4, wastes
 
 def FLDformula(x,y,S): 
     B = np.matrix(S - x*x.T - y*y.T)
     u = np.matrix(x - y)
     B_inverted = lin.inv(B)
     w = B_inverted*u
-    return w, B_inverted
+    return w, B
 
 def calcWindowParams(Xp, Xq):
     x,y,S = getXYS(Xp, Xq)
-    w, B_inverted = FLDformula(x,y,S)
+    w, B = FLDformula(x,y,S)
     w_norm = norm(w)
-    return S, x, y, w, w_norm, B_inverted
+    return S, x, y, w, w_norm, B
 
 def calcWindowParams2D(allDataP, allDataQ):
     k=allDataP.shape[0]
-    L=allDataP.shape[1]
+    Lp=allDataP.shape[1]
+    Lq=allDataQ.shape[1]
     d=allDataP.shape[2]
-    allDataPStacked = allDataP.reshape((k*L,d))
-    allDataQStacked = allDataQ.reshape((k*L,d))
+    allDataPStacked = allDataP.reshape((k*Lp,d))
+    allDataQStacked = allDataQ.reshape((k*Lq,d))
     return calcWindowParams(allDataPStacked, allDataQStacked)
     
 def initNodesData(k,L,d,mu_p_0,mu_q_0,cov_p_0,cov_q_0):
@@ -153,16 +192,16 @@ def updateData(allDataP, allDataQ,i,distsParams,p):
     mu_p, mu_q, cov_p, cov_q = distsParams
     dataP = allDataP[i]
     dataQ = allDataQ[i]
-    dataP, dataQ = (dataP[p:], dataQ[p:]) 
-    newP = np.random.multivariate_normal(mu_p, cov_p,p)
+    dataP, dataQ = (dataP[p:], dataQ[p:])
+    try: 
+        newP = np.random.multivariate_normal(mu_p, cov_p,p)
+    except:
+        pass
     newQ = np.random.multivariate_normal(mu_q, cov_q,p)
     dataP = np.concatenate((dataP, newP))
     dataQ = np.concatenate((dataQ, newQ))
     allDataP[i] = dataP
     allDataQ[i] = dataQ
 
-    
-    
-    
     
     

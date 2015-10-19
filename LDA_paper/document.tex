@@ -7,6 +7,7 @@
 
 \usepackage{natbib}
 \usepackage{graphicx}
+\usepackage[thinlines]{easytable}
 
 \begin{document}
 
@@ -68,17 +69,17 @@ k - number of nodes
 \begin{equation} 
 w_0:=(S_0 - x_0x_0^T - y_0y_0^T)^{-1}(x_0-y_0)
 \end{equation}
-\\\\and if $\Delta_s, \delta_x$, and $\delta_y$ are the drift vectors, we get:
+\\\\and if $\Delta_s, \delta_x$, and $\delta_y$ are the drift vectors of  $S, \x$, and $y$, we get:
 \begin{equation} \label{eq:drift}
 \\w= [S_0+\Delta_S - (x_0+\delta_x)(x_0+\delta_x)^T - (y_0+\delta_y)(y_0+\delta_y)^T]^{-1}(x_0+\delta_x-y_0-\delta_y)
 \end{equation}
 \\\\For simplicity we will denote
 $B_0:=S_0 - x_0x_0^T - y_0y_0^T$
 \\$\Delta:= \Delta_S - \delta_x\delta_x^T - \delta_y\delta_y^T - x_0\delta_x^T - \delta_xx_0^T - y_0\delta_y^T - \delta_yy_0^T
-\\\mu_0:=x_0-y_0 
+\\u_0:=x_0-y_0 
 \\\delta:=\delta_x-\delta_y
 \\w_0=B_0^{-1}u_0
-\\w=(B_0+\Delta)^{-1}(\mu_0+\delta)
+\\w=(B_0+\Delta)^{-1}(  u_0+\delta)
 \\
 \\Q:=\delta_x\delta_x^T + \delta_y\delta_y^T
 \\L:= \Delta - Q$
@@ -87,10 +88,10 @@ Using the notation stated above, we can write the sphere condition in terms of $
 \\$\parallel w-w_0 \parallel \ = \ \parallel (B_0+\Delta)^{-1}(u_0+\delta) -  B_0^{-1}u_0\parallel$
 \\
 \\By Cauchy–Schwarz inequality we get:
-\\\parallel (B_0+\Delta)^{-1}(u_0+\delta) -  B_0^{-1}u_0\parallel \ \leq \ \parallel (B_0+\Delta)^{-1}(u_0+\delta)\parallel +  \parallel B_0^{-1}u_0\parallel
+\\$\parallel (B_0+\Delta)^{-1}(u_0+\delta) -  B_0^{-1}u_0\parallel \ \leq \ \parallel (B_0+\Delta)^{-1}(u_0+\delta)\parallel +  \parallel B_0^{-1}u_0\parallel
 \\
 \\E_1:= \ \parallel (B_0+\Delta)^{-1}\delta\parallel
-\\E_2:= \ \parallel ((B_0+\Delta)^{-1} - -B_0^{-1})u_0 \parallel$
+\\E_2:= \ \parallel ((B_0+\Delta)^{-1} - B_0^{-1})u_0 \parallel$
 \\\\If we assume that $\parallel B_0^{-1}\Delta \parallel \ \leq \ 1$, then from the lemma that is proven in appendix A of "Monitoring Least Squares Models of Distributed Streams" we get:
 \\$E_1 \leq \frac{\parallel B_0^{-1}\delta\parallel}{1-\parallel B_0^{-1}\Delta \parallel}
 \\\\E_2 \leq  \frac{\parallel B_0^{-1}\delta w_0\parallel}{1-\parallel B_0^{-1}\Delta \parallel} 
@@ -98,13 +99,39 @@ Using the notation stated above, we can write the sphere condition in terms of $
 \\\parallel w-w_0 \parallel \ \leq \ E_1+E_2 = \frac{\parallel B_0^{-1}\delta \parallel + \parallel B_0^{-1}\Delta w_0 \parallel}{1 - \parallel B_0^{-1}\Delta \parallel} \ \leq \ R_0  \Rightarrow 
 \\\parallel B_0^{-1}\delta \parallel + \parallel B_0^{-1}\Delta w_0 \parallel + R_0 \parallel B_0^{-1}\Delta \parallel \ \leq \ R_0 $
 \\\\By Cauchy–Schwarz inequality we get:
-\\$\parallel B_0^{-1}\delta w_0\parallel \ \leq \ \parallel B_0^{-1}\delta \parallel \parallel w_0\parallel
-\\\parallel B_0^{-1}\Delta\parallel \ \leq \ \parallel B_0^{-1}L\parallel +\parallel  B_0^{-1}Q\parallel$
-\\\\So we can derive the new (convex?!) condition:
-\\ $\parallel B_0^{-1}\delta \parallel + \ \parallel B_0^{-1}\delta \parallel \parallel w_0\parallel + R_0( \parallel B_0^{-1}L\parallel +\parallel  B_0^{-1}Q\parallel) \ \leq \ R_0$
+\\$\parallel B_0^{-1}\Delta w_0\parallel \ \leq \ \alpha \parallel
+B_0^{-1}\Delta \parallel \parallel w_0\parallel \\\parallel
+B_0^{-1}\Delta\parallel \ \leq \ \parallel B_0^{-1}L\parallel +\parallel  B_0^{-1}Q\parallel$ \\\\So we can derive the new convex condition:
+\\ $\parallel B_0^{-1}\delta \parallel + (\alpha \parallel w_0\parallel + R_0)(
+\parallel B_0^{-1}L\parallel +\parallel  B_0^{-1}Q\parallel) \ \leq \ R_0$ \\where $R_0 = \parallel w_0\parallel sin(arccos(T))$ 
 
 
 
+\begin{TAB}(r,1cm,1.5cm)[0.5pt]{|c|c|c|c|c|}{|c|c|c|c|c|c|}%
+% (rows,min,max)[tabcolsep]{columns}{rows}
+Num&Symbol&Expression&Bound&Theorem\\
+
+1 & $\parallel w-w_0 \parallel$ & $\parallel (B_0+\Delta)^{-1}(u_0+\delta) - 
+B_0^{-1}u_0\parallel$ 
+&  \begin{tabular}[x]{@{}c@{}} \parallel (B_0+\Delta)^{-1}\delta\parallel \\
++ \parallel ((B_0+\Delta)^{-1} - B_0^{-1})u_0\parallel} \end{tabular} 
+&Triangle inequality\\
+
+2 & $E_1$ \ & $\parallel (B_0+\Delta)^{-1}\delta\parallel$  & $\frac{\parallel
+B_0^{-1}\delta\parallel}{1-\parallel B_0^{-1}\Delta \parallel}$ & Neumann series\\
+
+3 & $E_2$ & $\parallel ((B_0+\Delta)^{-1} - B_0^{-1})u_0 \parallel$ 
+ & $\frac{\parallel B_0^{-1}\Delta w_0\parallel}{1-\parallel B_0^{-1}\Delta
+ \parallel}$ & Neumann series\\
+ 
+4 & & $\parallel B_0^{-1}\Delta w_0\parallel$& $ \alpha \parallel B_0^{-1}\Delta
+\parallel \parallel w_0\parallel$ &Cauchy–Schwarz\\
+
+5 & &$\parallel B_0^{-1}\Delta\parallel$&$\parallel B_0^{-1}L\parallel
++\parallel B_0^{-1}Q\parallel$ & Triangle inequality
+
+
+\end{TAB}
 \bibliographystyle{plain}
 \bibliography{references}
 \end{document}
