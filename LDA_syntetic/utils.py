@@ -60,22 +60,22 @@ def simulateNode(mu_p, cov_p, mu_q, cov_q, n):
 
 def getXYS(Xp, Xq):
     x = np.matrix(np.mean(Xp, axis=0)).T
-    y = np.matrix(np.mean(Xq, axis=0)).T
+    tags = np.matrix(np.mean(Xq, axis=0)).T
     Xp = np.matrix(Xp)
     Xq = np.matrix(Xq)
     n = Xp.shape[0] + Xq.shape[0]
     n_p = Xp.shape[0]
     n_q = Xq.shape[0]
     S = 1.0/n_p*Xp.T*Xp + 1.0/n_q*Xq.T*Xq
-    return x,y,S
+    return x,tags,S
 
-def checkLocalConstraint(localParams,  globalParams, currentData, R0):
+def checkLocalConstraint(localParams,  globalParams, currentData, R0, alpha=1):
     a4, waste = getLeftSide(localParams,  globalParams, currentData, R0)
     return a4 <= R0
 
 def getLeftSide(localParams,  globalParams, currentData, R0, alpha=1):
     x0, y0, S0 = localParams
-    w0, B0, u0, w = globalParams
+    w0, B0, u0 = globalParams
     Xp, Xq = currentData
     w0_norm = norm(w0)
     #R0 = getR0(w0_norm, T)
@@ -84,55 +84,64 @@ def getLeftSide(localParams,  globalParams, currentData, R0, alpha=1):
     B0_inverted = lin.inv(B0)
     delta_x = x_i - x0
     delta_y = y_i - y0
-    Q = delta_x*delta_x.T + delta_y*delta_y.T
+    Q = -delta_x*delta_x.T + -delta_y*delta_y.T
     Delta_S = S_i - S0
     delta = delta_x - delta_y
     L = Delta_S - x0*delta_x.T - delta_x*x0.T - y0*delta_y.T - delta_y*y0.T
-    a1 = norm(B0_inverted*delta)
-    a2 = alpha*w0_norm + R0
-    a3 = normOperator(B0_inverted*L)+normOperator(B0_inverted*Q)
-    
+
     Delta = Q + L
-    B = np.matrix(S_i - x_i*x_i.T - y_i*y_i.T)
     #u0 = x0-y0
+    
+    B = np.matrix(S_i - x_i*x_i.T - y_i*y_i.T)
+    u = x_i-y_i
+    w = lin.inv(B)*u
+    if norm(w-w0)>R0:
+        raise ValueError("local norm(w-w0)>R0")
+    
     E1 = norm(lin.inv(B0+Delta)*delta)
     E2 = norm((lin.inv(B0+Delta)-B0_inverted)*u0)
-    wastes = np.zeros(6)
-    wastes[0] = E1 + E2 - norm(w- w0) 
-    a6 =     normOperator(B0_inverted*Delta)
-    denominator = 1- a6
-    a5 = norm(B0_inverted*Delta*w0)
-    wastes[4] = a3 - a6
-    if denominator > 0:
-        #wastes[3] = (a6*w0_norm - a5)/(R0*denominator)
-        wastes[3] = a6*w0_norm/a5
-        wastes[1] = \
-            norm(B0_inverted*delta)/denominator - E1
-        waste3 = a5/denominator - E2
-        a4 = a1 +a2*a3 
-    else:
-        wastes[1] = R0
-        wastes[2] = R0
-        wastes[3] = R0
-        return R0+1, wastes
-    if wastes[0] < 0:
-        pass
-    #wastes = [waste1/R0, waste2/R0, waste3/R0, waste4, waste5*(R0+w0_norm)/R0]
-    wastes[5] = np.sum(wastes)
-    return a4, wastes
+    if (E1+E2)>R0:
+        raise  ValueError("(E1+E2)>R0")
+    
+    B0invDelta = normOperator(B0_inverted*Delta)
+    denominator = 1- B0invDelta
+    
+    
+    if denominator < 0:
+        raise ValueError("normOperator(B0_inverted*Delta) > 1 (singularity)")
+    
+    e2Nom = norm(B0_inverted*Delta*w0)
+    e1Nom = norm(B0_inverted*delta)
+    bigE1 = e1Nom/denominator
+    bigE2 = e2Nom/denominator
+    
+    if (bigE1+bigE2)>R0:
+        #raise  ValueError("(bigE1+bigE2)>R0")
+        raise  ValueError("Newman series")
+    
+    bigE2afterCS = B0invDelta*w0_norm/denominator
+    if (bigE1+bigE2afterCS)>R0:
+        #raise  ValueError("(bigE1+bigE2afterCS)>R0")
+        raise  ValueError("Operator Norm CS")
+    a3 = normOperator(B0_inverted*L)+normOperator(B0_inverted*Q)
+    a4 = (e1Nom+a3*w0_norm)/denominator 
 
-def FLDformula(x,y,S): 
-    B = np.matrix(S - x*x.T - y*y.T)
-    u = np.matrix(x - y)
+    
+    #local = a4/R0
+    return a4, w
+
+def FLDformula(x,tags,S): 
+    B = np.matrix(S - x*x.T - tags*tags.T)
+    u = np.matrix(x - tags)
     B_inverted = lin.inv(B)
     w = B_inverted*u
     return w, B
 
 def calcWindowParams(Xp, Xq):
-    x,y,S = getXYS(Xp, Xq)
-    w, B = FLDformula(x,y,S)
+    x,tags,S = getXYS(Xp, Xq)
+    w, B = FLDformula(x,tags,S)
     w_norm = norm(w)
-    return S, x, y, w, w_norm, B
+    return S, x, tags, w, w_norm, B
 
 def calcWindowParams2D(allDataP, allDataQ):
     k=allDataP.shape[0]
@@ -144,25 +153,26 @@ def calcWindowParams2D(allDataP, allDataQ):
     return calcWindowParams(allDataPStacked, allDataQStacked)
     
 def initNodesData(k,L,d,mu_p_0,mu_q_0,cov_p_0,cov_q_0):
-    allDataP = np.zeros((k,L,d))
-    allDataQ = np.zeros((k,L,d))
+    allDataP = np.zeros((k,L/2,d))
+    allDataQ = np.zeros((k,L/2,d))
     references=[]
     for i in range(k):
-        Xp_0 = np.random.multivariate_normal(mu_p_0, cov_p_0, L)
-        Xq_0 = np.random.multivariate_normal(mu_q_0, cov_q_0, L)
+        Xp_0 = np.random.multivariate_normal(mu_p_0, cov_p_0, L/2)
+        Xq_0 = np.random.multivariate_normal(mu_q_0, cov_q_0, L/2)
         allDataP[i] = Xp_0
         allDataQ[i] = Xq_0
         referenceParams = getXYS(Xp_0, Xq_0)
         references.append(referenceParams)
     return allDataP, allDataQ, references
 
-def updateNodes(globalParams, references, data , distsParams, sync):
-    k, T, w0, w0_norm, B0_inverted = globalParams
+def updateNodes(globalParams, references, data , distsParams, sync, R0):
+    w0, B0, u0 = globalParams
     allDataP, allDataQ = data
     mu_p, mu_q, cov_p, cov_q = distsParams
     violationCounter = 0
+    k=len(allDataP)
     for i in range(k):
-        referenceParams = references[i]
+        #referenceParams = references[i]
         dataP = allDataP[i]
         dataQ = allDataQ[i]
         dataP, dataQ = (dataP[1:], dataQ[1:]) 
@@ -173,9 +183,8 @@ def updateNodes(globalParams, references, data , distsParams, sync):
         allDataP[i] = dataP
         allDataQ[i] = dataQ
 
-        x0_i, y0_i, S0_i = referenceParams
-        isInSafeZone = checkLocalConstraint(S0_i, x0_i, y0_i, w0_norm, \
-            B0_inverted, dataP, dataQ, T)
+        currentData=allDataP[i], allDataQ[i]
+        isInSafeZone = checkLocalConstraint(references[i],  globalParams, currentData, R0)
         if not isInSafeZone:
             violationCounter += 1
     if sync and violationCounter > 0:
@@ -185,7 +194,7 @@ def updateNodes(globalParams, references, data , distsParams, sync):
             referenceParams = getXYS(dataP, dataQ)
             references[i] = referenceParams
         S0, x0, y0, w0, w0_norm, B0_inverted = calcWindowParams2D(allDataP, allDataQ) 
-    globalParams = k, T, w0, w0_norm, B0_inverted
+    globalParams =  w0, B0, u0
     return violationCounter, globalParams
 
 def updateData(allDataP, allDataQ,i,distsParams,p):
@@ -202,6 +211,9 @@ def updateData(allDataP, allDataQ,i,distsParams,p):
     dataQ = np.concatenate((dataQ, newQ))
     allDataP[i] = dataP
     allDataQ[i] = dataQ
+    
+def chernof(n,p,x):
+    return np.exp(-x**2 / (2*n*p*(1-p)))
 
     
     

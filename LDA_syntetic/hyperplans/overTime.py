@@ -72,8 +72,8 @@ for i in range(k):
     references.append(referenceParams)
 allDataP = np.array(allDataP)
 allDataQ = np.array(allDataQ)
-S0, x0, y0, w0, w0_norm, B0_inverted = calcWindowParams2D(allDataP, allDataQ)
-
+S0, x0, y0, w0, w0_norm, B0 = calcWindowParams2D(allDataP, allDataQ)
+u0 = x0-y0 
 print len(allDataP[0])
 print len(allDataQ[0])
 
@@ -100,6 +100,7 @@ adaAccuracies=[]
 innerLoopCounter = initLen
 time=0
 while innerLoopCounter < dataLength:
+    R0 = getR0(w0_norm, T)
     violationCounter = 0
     #accuracy = 0.0
     for i in range(k): 
@@ -109,10 +110,10 @@ while innerLoopCounter < dataLength:
             allDataP[i] = np.concatenate((allDataP[i][1:], newPoint))
         else:
             allDataQ[i] = np.concatenate((allDataQ[i][1:], newPoint))
-
-        x0_i, y0_i, S0_i = references[i]
-        isInSafeZone = checkLocalConstraint(S0_i, x0_i, y0_i, w0_norm, \
-            B0_inverted, allDataP[i], allDataQ[i], T)
+        globalParams=w0, B0, u0, w
+        currentData=allDataP[i], allDataQ[i]
+        isInSafeZone = checkLocalConstraint(references[i],  
+                            globalParams, currentData, R0, alpha=1)
         if not isInSafeZone:
             violationCounter += 1
         windowIndex = innerLoopCounter%clfWindowSize
@@ -135,8 +136,8 @@ while innerLoopCounter < dataLength:
         for i in range(k):
             referenceParams = getXYS(allDataP[i], allDataQ[i])
             references[i] = referenceParams
-        S0, x0, y0, w0, w0_norm, B0_inverted = calcWindowParams2D(allDataP, allDataQ)
-        
+        S0, x0, y0, w0, w0_norm, B0 = calcWindowParams2D(allDataP, allDataQ)
+        u0 = x0-y0 
         adaClf.fit(X[innerLoopCounter-clfWindowSize:innerLoopCounter], tags[innerLoopCounter-clfWindowSize:innerLoopCounter])
     S, x, y, w, w_norm, B_inverted = calcWindowParams2D(allDataP, allDataQ)
     c = cosineSimilarity(w0, w) 

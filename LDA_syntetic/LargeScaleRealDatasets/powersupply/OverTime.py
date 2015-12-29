@@ -4,85 +4,39 @@ from sklearn.lda import LDA
 from sklearn.decomposition import PCA
 import copy
 import itertools
-k=2
-#L=100
+
+k=50
+#L=400
 T = 0.5
+numberOfdaysInWindow=500
+clfWindowSize = numberOfdaysInWindow*24/k
+trajWindow= 2000#clfWindowSize*k
+initLen = clfWindowSize*k
+violationThreshold = k-5
+d=2
+alpha=1
 
-#numOfchunks=5
-#chunkSize = 300
-clfWindowSize = 1000
-initLen = clfWindowSize
-violationThreshold = 0#k-1
-d=3
-alpha=1#1.0/d
-#firstClass = [1,3,4]
-classes = [1,2]
-def readBatch(batchNum):
-    dataFile = open('batch'+str(batchNum)+'.dat', 'r')
-    X=[]
-    tags=[]
-    for line in dataFile:
-        line = line.strip()
-        splited= line.split()
-        x = [float(v.split(':')[1]) for v in splited[1:]]
-        tag= int(splited[0])
-        #tag = (tag in firstClass)
-        if tag in classes:
-            tag = (tag>classes[0])
-            X.append(x)
-            tags.append(tag)
-    #return np.array(X), np.array(tags)
-    return X, tags
-
-def concatenateBatches():
-    X=[]
-    tags=[]
-    for batchNum in range(1,11):
-        currX, currTags = readBatch(batchNum)
-        X = X + currX
-        tags = tags + currTags
-    return np.array(X), np.array(tags)
-
-def readBatchWithPCA(batchNum, pca):
-    X, tags = readBatch(batchNum)
-    if pca:
-        X = pca.transform(X)
-    return X, tags
- 
-X, tags =  concatenateBatches()  
-dataLength = len(X) 
-print X.shape
-print tags.shape
-
-
-"""
-trainX,trainTags = readBatch(1)
-pca = PCA(n_components=d)
-#trainX = pca.fit_transform(trainX,trainTags)
-#print(pca.explained_variance_ratio_) 
-
-clf = LDA()
-clf.fit(trainX, trainTags)
-#combs = list(itertools.combinations((1, 2, 3, 4, 5, 6), 3))
-for batchNum in range(1,11):
-    trainX,trainTags = readBatchWithPCA(batchNum, False)
-    clf.fit(trainX, trainTags)
-    params = range(batchNum,11)
-    scores=[]
-    for batchNum2 in params: 
-        testX, testTags = readBatchWithPCA(batchNum2, False)
-        scores.append(clf.score(testX, testTags)) 
-
-    plt.plot(params, scores)
-plt.title(str(firstClass))
-plt.show()
-"""
-
-pca = PCA(n_components=d)
-X = pca.fit_transform(X,tags)
-print'pca.explained_variance_ratio_', pca.explained_variance_ratio_
-print np.sum(pca.explained_variance_ratio_), 'np.sum(pca.explained_variance_ratio_)'
-#L=100
+f = open('C:/Users/ran/Downloads/powersupply.arff')
+X=[]
+Xp=[]
+Xq=[]
+tags=[]
+for j,line in enumerate(f):
+    if '\n' in line:
+        line=line[:-1]
+        splited=line.split(',')
+    hour = int(splited[2])
+    tag=(hour > 7 and hour < 20)
+    #tag=int(splited[-1])
+    x = [float(v) for v in splited[:2]]
+    X.append(np.array(x))
+    tags.append(tag)
+    
+    if tag:
+        Xp.append(x)
+    else:
+        Xq.append(x)
+print len(tags)
 allDataP = []
 allDataQ = []
 allDataPFlat = []
@@ -90,31 +44,35 @@ allDataQFlat = []
 for i in range(k):
     allDataP.append([])
     allDataQ.append([])
-for time in range(initLen):
-    violationCounter = 0
+pI=0
+qI=0
+for time in range(initLen/k):
+    violationCounter = 0.
     for i in range(k): 
-        newPoint =  X[time]
-        tag = tags[time]
+        index=time*k+i
+        newPoint =  X[index]
+        tag = tags[index]
         if tag:
             allDataP[i].append(newPoint)
             allDataPFlat.append(newPoint)
+            pI+=1
         else:
             allDataQ[i].append(newPoint)
             allDataQFlat.append(newPoint)
+            qI+=1
 references=[]
 for i in range(k): 
     referenceParams = getXYS(allDataP[i], allDataQ[i])
     references.append(referenceParams)
-allDataP = np.array(allDataP)
-allDataQ = np.array(allDataQ)
+allDataP = np.reshape(np.array(allDataP),(k,pI/k,d))
+allDataQ = np.reshape(np.array(allDataQ),(k,qI/k,d))
 S0, x0, y0, w0, w0_norm, B0 = calcWindowParams2D(allDataP, allDataQ)
 u0 = x0-y0
 Psize = len(allDataP[0])
 print len(allDataP[0])
 Qsize = len(allDataQ[0])
 print len(allDataQ[0])
-
-
+dataLength = len(X) 
 clf = LDA()
 clf.fit(X[:initLen], tags[:initLen])
 
@@ -144,15 +102,44 @@ adaHits=0.0
 oracleHits=0.0
 testDataLen = dataLength - initLen
 sentIndecies = set()
-innerLoopCounter = initLen
 time=initLen/k
 TVcounter = np.zeros(k+1)
 NTVcounter = np.zeros(k+1)
 params=[]
+p0s=[]
+p1s=[]
+q0s=[]
+q1s=[]
+#pI,qI = trajWindow, trajWindow
+trajParams=[]#
+Xp, Xq = np.array(Xp), np.array(Xq)
+for i in range(initLen,dataLength):
+    if pI>len(Xp) or qI>len(Xq):
+        break
+    tag = tags[i]
+    if tag:
+        pI+=1
+    else:
+        qI+=1
+    trajParams.append(pI+qI)
+    #S, x, y, w, w_norm, B = \
+    #    calcWindowParams(Xp[pI-min(trajWindow,pI):pI], \
+    #                     Xq[qI-min(trajWindow,qI):qI])
+    #w =w/norm(w)
+    #if w.item(0) < 0:
+    #    w=w*(-1)
+    #p0s.append(w.item(0))
+    #p1s.append(w.item(1))
+    p0s.append(np.mean(Xp[pI-min(trajWindow,pI):pI,0]))
+    p1s.append(np.mean(Xp[pI-min(trajWindow,pI):pI,1]))
+    q0s.append(np.mean(Xq[qI-min(trajWindow,qI):qI,0]))
+    q1s.append(np.mean(Xq[qI-min(trajWindow,qI):qI,1]))
+trajParams=np.array(trajParams)
+innerLoopCounter = initLen
 while innerLoopCounter < dataLength-k+1:    
     R0 = getR0(w0_norm, T)
-    params.append(time)
-    violationCounter = 0
+    
+    violationCounter = 0.
     leftValue = []
     for i in range(k): 
         newPoint =  X[innerLoopCounter].reshape((1,d))
@@ -185,16 +172,11 @@ while innerLoopCounter < dataLength-k+1:
         adaHits+=(adaRes==tag)
         
         innerLoopCounter+=1
+        
+        S, x, y, w, w_norm, B = calcWindowParams2D(allDataP, allDataQ)
     
-    accuracy = float(np.sum(lastRes))/clfWindowSize
-    accuracies.append(accuracy)
-    adaAccuracy = float(np.sum(adaLastRes))/clfWindowSize
-    adaAccuracies.append(adaAccuracy)
-    
-    leftValue = np.max(leftValue)
-    leftValue /= R0
-    leftValues.append(leftValue)
-    
+    params.append(time)
+    leftValues.append(violationCounter/k)
     S, x, y, w, w_norm, B = calcWindowParams2D(allDataP, allDataQ)
     real = norm(w-w0)
     real /= R0
@@ -204,7 +186,8 @@ while innerLoopCounter < dataLength-k+1:
     else:
         NTVcounter[violationCounter]+=1
 
-        
+    
+       
     
     #if real > 2:
     if violationCounter >violationThreshold:
@@ -214,11 +197,13 @@ while innerLoopCounter < dataLength-k+1:
             references[i] = referenceParams
         S0, x0, y0, w0, w0_norm, B0 = calcWindowParams2D(allDataP, allDataQ)
         u0 = x0-y0        
-        newData = np.concatenate((allDataPFlat[-Psize:], allDataQFlat[-Qsize:]))
-        newTags = np.concatenate((np.ones(Psize), np.zeros(Qsize)))
-        adaClf.fit(newData, newTags)
-        #adaClf.fit(X[innerLoopCounter-clfWindowSize:innerLoopCounter], tags[innerLoopCounter-clfWindowSize:innerLoopCounter])
-        sentIndecies= sentIndecies | set(range(innerLoopCounter-clfWindowSize,innerLoopCounter))
+        
+        leftValues.append(0)
+        S, x, y, w, w_norm, B = calcWindowParams2D(allDataP, allDataQ)
+        real = norm(w-w0)
+        real /= R0
+        reals.append(real)
+        params.append(time)
     #S, x, y, w, w_norm, B_inverted = calcWindowParams2D(allDataP, allDataQ)
     #c = cosineSimilarity(w0, w) 
     #cosines.append(c)
@@ -228,8 +213,9 @@ while innerLoopCounter < dataLength-k+1:
 print syncs
 print len(syncs)
 
-params = range(initLen/k, time)
+#params = range(initLen/k, time)
 dic={}
+dic['trajWindow']=trajWindow
 dic['Nodes num'] = k
 #dic['Window size for positive class'] = allDataP.shape[1]
 #dic['Window size for negative class'] = allDataQ.shape[1]
@@ -240,7 +226,7 @@ dic['Threshold'] = T
 dic['clfWindowSize'] = clfWindowSize
 #dic['SentInstances'] = len(sentIndecies)
 dic['Rounds/syncs_Ratio'] = len(params)/len(syncs)
-
+"""
 plt.title(str(dic))
 plt.plot(params, accuracies, label='Accuracy '+str(hits/testDataLen))
 plt.plot(params, adaAccuracies, label='Adaptive accuracy '+str(adaHits/testDataLen))
@@ -250,7 +236,9 @@ for sync in syncs:
 plt.legend().draggable()
 plt.xlabel('Round')
 plt.ylabel('Accuracy')
+"""
 
+"""
 plt.figure()
 hist=[]
 for i in range(k+1):
@@ -259,8 +247,23 @@ plt.scatter(range(k+1),hist)
 plt.title(str(dic))
 plt.xlabel('Number of locally violated nodes')
 plt.ylabel('Probability for true violation')
-plt.figure()
+"""
 
+"""
+plt.figure()
+plt.plot(trajParams,p0s, label='p[0]')
+plt.plot(trajParams,p1s, label='p[1]')
+plt.plot(trajParams,q0s, label='q[0]')
+plt.plot(trajParams,q1s, label='q[1]')
+for sync in syncs:
+    plt.axvline(sync*k, color='r')
+plt.legend().draggable()
+plt.xlabel('Instance Number')
+plt.ylabel('Position')
+plt.title(str(dic))
+"""
+
+plt.figure()
 #plt.plot(params,cosines, label='True cosine simillarity')
 plt.plot(params,leftValues, label='DLDA Bound')
 plt.plot(params,reals, label='norm(w-w0)')
