@@ -8,11 +8,11 @@ import copy
 d=2
 R=2.0
 var=1
-T=0.997
+T=0.99
 k=10
 L=1000
 dic={}
-timeLength=10*L
+timeLength=3*L
 p=100
 
 mu_p_0 = np.zeros((d,))
@@ -28,14 +28,17 @@ cosines = []
 cosinesPer = []
 time=0
 allDataP, allDataQ, references = initNodesData(k,L,d,mu_p_0,mu_q_0,cov_p_0,cov_q_0)
-S0, x0, y0, w0, w0_norm, B0_inverted = calcWindowParams2D(allDataP, allDataQ)
+S0, x0, y0, w0, w0_norm, B0 = calcWindowParams2D(allDataP, allDataQ)
+u0 = x0-y0
 S0_per, x0_per, y0_per, w0_per, w0_norm_per, \
-    B0_inverted_per = calcWindowParams2D(allDataP, allDataQ)
+    B0_per = calcWindowParams2D(allDataP, allDataQ)
+u0_per = x0_per - y0_per
 periodDataP = np.zeros((k,p,d))
 periodDataQ = np.zeros((k,p,d))
 params =  range(timeLength)
 syncs = []
 for time in params:
+    R0 = getR0(w0_norm, T)
     changeGap = timeLength/4
     theta = (np.pi/timeLength)*(time - time%changeGap)
     mu_q[0] = R*np.cos(theta)
@@ -48,10 +51,12 @@ for time in params:
         
         newQ = np.random.multivariate_normal(mu_q, cov_q,1)
         allDataQ[i] = np.concatenate((allDataQ[i][1:], newQ))
-
-        x0_i, y0_i, S0_i = references[i]
-        isInSafeZone = checkLocalConstraint(S0_i, x0_i, y0_i, w0_norm, \
-            B0_inverted, allDataP[i], allDataQ[i], T)
+        currentData=allDataP[i], allDataQ[i]
+        globalParams = w0, B0, u0 
+        isInSafeZone = checkLocalConstraint(references[i],  
+                globalParams, currentData, R0, alpha=1)
+        #isInSafeZone = checkLocalConstraint(S0_i, x0_i, y0_i, w0_norm, \
+        #    B0_inverted, allDataP[i], allDataQ[i], T)
         if not isInSafeZone:
             violationCounter += 1
         

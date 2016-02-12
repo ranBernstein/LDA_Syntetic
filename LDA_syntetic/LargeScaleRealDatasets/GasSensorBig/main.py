@@ -19,28 +19,27 @@ def filterOut(x):
     x = np.array(x)
     outliers_fraction=0.05
     #clf = svm.OneClassSVM(nu=0.95 * outliers_fraction + 0.05,  kernel="rbf", gamma=0.1) 
-    clf = EllipticEnvelope(contamination=.1)
+    clf = EllipticEnvelope(contamination=outliers_fraction)
     clf.fit(x)
     y_pred = clf.decision_function(x).ravel()
     threshold = stats.scoreatpercentile(y_pred,
                                         100 * outliers_fraction)
     y_pred = y_pred > threshold
-    x = x[y_pred]
     return y_pred
 
 dic={}
 alpha=1
 beta=2
-dic['alpha'] = alpha
-dic['beta'] = beta
-#T=0
-R0 = 0.001
+#dic['alpha'] = alpha
+#dic['beta'] = beta
+T=0
+#R0 = 0.001
 totalSize = 8378504
-samplingRate = 25
+samplingRate = 10
 numOfPeriods = 2
 #periodSize = totalSize/numOfPeriods/samplingRate
-L = 1500
-k=1000
+L = 2200
+k=100
 periodSize=min(3*L*k, totalSize/numOfPeriods/samplingRate)
 #dataLengthBeforeFiltering = periodSize*k*
 violationThreshold=0.95*k
@@ -52,8 +51,10 @@ ethylene_methane = open('C:/Users/ran/Downloads/ethylene_methane.txt')
 headers = ethylene_CO.readline()
 headers = ethylene_methane.readline()
 
-X=[]
-tags=[]
+X1=[]
+X2=[]
+tags1=[]
+tags2=[]
 y1=[]
 y2=[]
 positive=0
@@ -61,6 +62,8 @@ Xp=[]
 Xq=[]
 beforeDriftP=0
 beforeDriftQ=0
+typeA = 0
+typeB = 0
 for _ in range(numOfPeriods/2):
     for j,line in enumerate(ethylene_CO):
         if j>periodSize*samplingRate:
@@ -72,16 +75,12 @@ for _ in range(numOfPeriods/2):
         eth = float(splited[1])
         other = float(splited[2])
         #tags.append(bool(other>0) ^ bool(eth>0))
-        tag = bool(other>0)
-        if tag:
-            positive+=1
-            Xp.append(x)
-        else:
-            Xq.append(x)
-        tags.append(tag)
+        tag = bool(eth>0)
+        tags1.append(tag)
         y1.append(eth)
         y2.append(other)
-        X.append(np.array(x))
+        X1.append(np.array(x))
+        typeA+=1
         
     for j,line in enumerate(ethylene_methane):
         if j>periodSize*samplingRate:
@@ -92,41 +91,49 @@ for _ in range(numOfPeriods/2):
         eth = float(splited[1])
         other = float(splited[2])
         #tags.append(bool(other>0) ^ bool(eth>0))
-        tag = bool(other>0)
-        if tag:
-            positive+=1
-            Xp.append(x)
-        else:
-            Xq.append(x)
-        tags.append(tag)
+        tag = bool(eth<0)
+        tags2.append(tag)
         y1.append(eth)
         y2.append(float(splited[2]))
         x = [float(v) for v in splited[3:]]
-        X.append(np.array(x))
+        X2.append(np.array(x))
+        typeB+=1
+print 'typeA, typeB', typeA, typeB
+pca = PCA(n_components=d)
+pcaInitLen = min(initLen, 100000)
+pca.fit(X1[:pcaInitLen], tags1[:pcaInitLen])
+pred = filterOut(X1)
+X1 = np.array(X1)[pred]
+tags1 = np.array(tags1)[pred]
 
-pred = filterOut(X)
-X = np.array(X)[pred]
-tags = np.array(tags)[pred]
+pca.fit(X2[:pcaInitLen], tags2[:pcaInitLen])
+pred = filterOut(X2)
+X2 = np.array(X2)[pred]
+tags2 = np.array(tags2)[pred]
 
 
 print 'finish reading'
-pca = PCA(n_components=d)
-pcaInitLen = min(initLen, 100000)
-pca.fit(X[:pcaInitLen], tags[:pcaInitLen])
 #X_transformed = pca.transform(X)
 #Xp = pca.transform(Xp)
 #Xq = pca.transform(Xq)
 
 print 'finish pca'
 
-dataLength = len(X) 
+dataLength = len(X1) + len(X2)
 pI = int(float(L)*positive/dataLength)
 qI = L - pI
 print 'dataLength', dataLength
 print 'pI, qI', pI, qI
 print 'len(Xp), len(Xq)', len(Xp), len(Xq)
-allDataP = np.reshape(pca.transform(Xp[:k*pI]),(k,pI,d))
-allDataQ = np.reshape(pca.transform(Xq[:k*qI]),(k,qI,d))
+initData = X1[:L*k]
+initTags = tags1[:L*k]
+Xp,Xq=initData[np.where(initTags==True)], initData[np.where(initTags==False)]
+pI, qI = len(Xp)/k, len(Xq)/k
+Xp,Xq=Xp[:pI*k],Xq[:qI*k] 
+allDataP = np.reshape(pca.transform(Xp),(k,pI,d))
+allDataQ = np.reshape(pca.transform(Xq),(k,qI,d))
+#allDataP = np.reshape(pca.transform(Xp[:k*pI]),(k,pI,d))
+#allDataQ = np.reshape(pca.transform(Xq[:k*qI]),(k,qI,d))
 
 references=[]
 for i in range(k): 
@@ -146,10 +153,7 @@ timeLength = (dataLength-initLen)/k
 cosines = []
 leftValues = []
 reals =[]
-R0s =[]
-
-accuracies=[]
-adaAccuracies=[]
+counters=[]
 hits=0.0
 adaHits=0.0
 oracleHits=0.0
@@ -166,29 +170,42 @@ dic['Nodes num'] = k
 #dic['Window size for positive class'] = allDataP.shape[1]
 #dic['Window size for negative class'] = allDataQ.shape[1]
 dic['Dimension'] = d
-dic['R0'] = R0
-#dic['T'] = T
-dic['IntancesNum'] = len(X)
+#dic['R0'] = R0
+dic['T'] = T
+dic['IntancesNum'] = dataLength
 dic['L'] = L
 dic['Positive'] = positive
 #dic['Number of syncs'] = len(syncs)
-#dic['violationThreshold'] = violationThreshold
+dic['violationThreshold'] = violationThreshold
 #dic['clfWindowSize'] = clfWindowSize
 #dic['SentInstances'] = len(sentIndecies)
 innerLoopCounter = initLen
+index = innerLoopCounter
 #print 'dataLength', dataLength
 print dic
-while innerLoopCounter < dataLength-k+1:  
+X = X1
+tags=tags1
+first=True
+while innerLoopCounter < dataLength-k+1: 
+    if not first and index>=len(X)-k:
+        break
+    if innerLoopCounter>=len(X1)-k and first:
+        X = X2
+        tags=tags2
+        change = time
+        first = False
+        index=0
     if  innerLoopCounter%10000==0:
         print 'innerLoopCounter', innerLoopCounter
-    #R0 = getR0(w0_norm, T)
+    R0 = getR0(w0_norm, T)
     params.append(time)
     violationCounter = 0.
     leftValue = []
+    counter=[]
     for i in range(k): 
-        newPoint = pca.transform(X[innerLoopCounter]).reshape((1,d))
+        newPoint = pca.transform(X[index]).reshape((1,d))
         #newPoint =  X[innerLoopCounter].reshape((1,d))
-        tag = tags[innerLoopCounter]
+        tag = tags[index]
         if tag:
             allDataP[i] = np.concatenate((allDataP[i][1:], newPoint))
         else:
@@ -205,9 +222,11 @@ while innerLoopCounter < dataLength-k+1:
             currLeftValue=-R0
         leftValue.append(currLeftValue)
         innerLoopCounter+=1
+        index+=1
         
         S, x, y, w, w_norm, B = calcWindowParams2D(allDataP, allDataQ)
-    leftValues.append(violationCounter/k)
+    counters.append(violationCounter/k)
+    leftValues.append(np.max(leftValue))
     
     S, x, y, w, w_norm, B = calcWindowParams2D(allDataP, allDataQ)
     real = norm(w-w0)
@@ -229,8 +248,6 @@ while innerLoopCounter < dataLength-k+1:
             references[i] = referenceParams
         S0, x0, y0, w0, w0_norm, B0 = calcWindowParams2D(allDataP, allDataQ)
         u0 = x0-y0 
-        pca.fit(X[innerLoopCounter-pcaInitLen:innerLoopCounter], \
-                tags[innerLoopCounter-pcaInitLen:innerLoopCounter])
         #X_transformed = pca.transform(X)       
     time+=1
 
@@ -242,13 +259,15 @@ dic['RoundsPerPeriod'] = nodePeriodSize
 
 plt.figure()
 #plt.plot(params,cosines, label='True cosine simillarity')
-plt.plot(params,leftValues, label='Fraction of violated nodes')
+plt.plot(params,counters, label='Fraction of violated nodes')
 plt.plot(params,reals, label='norm(w-w0)/R0')
+#plt.plot(params,leftValues, label='Maximal error over nodes', c='black')
+
 #plt.plot(params,R0s, label='R0')
 conceptDrifts = range(nodePeriodSize, \
                       params[-1], nodePeriodSize)
-for cd in conceptDrifts:
-    plt.axvline(cd, color='r', label='Concept Drift')
+#for cd in conceptDrifts:
+plt.axvline(change, color='r', label='Concept Drift')
 plt.scatter(syncs, np.ones_like(syncs), c='b', label='Syncs')
 #[300,600,900,1200]
 #plt.scatter(conceptsDrifts, np.ones_like(conceptsDrifts), c='r', 
@@ -260,5 +279,5 @@ plt.title(str(dic))
 
 
 
-
+print "finish"
 plt.show()

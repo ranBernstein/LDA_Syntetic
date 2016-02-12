@@ -95,20 +95,23 @@ def getLeftSide(localParams,  globalParams, currentData, R0, alpha=1):
     B = np.matrix(S_i - x_i*x_i.T - y_i*y_i.T)
     u = x_i-y_i
     w = lin.inv(B)*u
+    """
     if norm(w-w0)>R0:
         raise ValueError("local norm(w-w0)>R0")
-    
+    """
     E1 = norm(lin.inv(B0+Delta)*delta)
     E2 = norm((lin.inv(B0+Delta)-B0_inverted)*u0)
     if (E1+E2)>R0:
-        raise  ValueError("(E1+E2)>R0")
+        violation = "(E1+E2)>R0"
+        return (E1+E2), violation
     
     B0invDelta = normOperator(B0_inverted*Delta)
     denominator = 1- B0invDelta
     
     
     if denominator < 0:
-        raise ValueError("normOperator(B0_inverted*Delta) > 1 (singularity)")
+        violation = "normOperator(B0_inverted*Delta) > 1 (singularity)"
+        return R0+0.1, violation
     
     e2Nom = norm(B0_inverted*Delta*w0)
     e1Nom = norm(B0_inverted*delta)
@@ -117,18 +120,21 @@ def getLeftSide(localParams,  globalParams, currentData, R0, alpha=1):
     
     if (bigE1+bigE2)>R0:
         #raise  ValueError("(bigE1+bigE2)>R0")
-        raise  ValueError("Newman series")
+        violation = "Newman series"
+        return (bigE1+bigE2), violation
     
     bigE2afterCS = B0invDelta*w0_norm/denominator
     if (bigE1+bigE2afterCS)>R0:
         #raise  ValueError("(bigE1+bigE2afterCS)>R0")
-        raise  ValueError("Operator Norm CS")
+        violation = "Operator Norm CS"
+        return (bigE1+bigE2afterCS), violation
     a3 = normOperator(B0_inverted*L)+normOperator(B0_inverted*Q)
     a4 = (e1Nom+a3*w0_norm)/denominator 
 
-    
+    if a4 > R0:
+        return a4, "Quadratic and Linear split"
     #local = a4/R0
-    return a4, w
+    return a4, "No Violation"
 
 def FLDformula(x,tags,S): 
     B = np.matrix(S - x*x.T - tags*tags.T)
@@ -156,6 +162,8 @@ def initNodesData(k,L,d,mu_p_0,mu_q_0,cov_p_0,cov_q_0):
     allDataP = np.zeros((k,L/2,d))
     allDataQ = np.zeros((k,L/2,d))
     references=[]
+    allP =[]
+    allQ=[]
     for i in range(k):
         Xp_0 = np.random.multivariate_normal(mu_p_0, cov_p_0, L/2)
         Xq_0 = np.random.multivariate_normal(mu_q_0, cov_q_0, L/2)
@@ -163,14 +171,17 @@ def initNodesData(k,L,d,mu_p_0,mu_q_0,cov_p_0,cov_q_0):
         allDataQ[i] = Xq_0
         referenceParams = getXYS(Xp_0, Xq_0)
         references.append(referenceParams)
-    return allDataP, allDataQ, references
+        allP+=Xp_0.tolist()
+        allQ+=Xq_0.tolist()
+    return allDataP, allDataQ, references, allP, allQ
 
-def updateNodes(globalParams, references, data , distsParams, sync, R0):
+def updateNodes(globalParams, references, data , distsParams, R0, sync=True):
     w0, B0, u0 = globalParams
     allDataP, allDataQ = data
     mu_p, mu_q, cov_p, cov_q = distsParams
     violationCounter = 0
     k=len(allDataP)
+    errors= []
     for i in range(k):
         #referenceParams = references[i]
         dataP = allDataP[i]
@@ -184,8 +195,11 @@ def updateNodes(globalParams, references, data , distsParams, sync, R0):
         allDataQ[i] = dataQ
 
         currentData=allDataP[i], allDataQ[i]
-        isInSafeZone = checkLocalConstraint(references[i],  globalParams, currentData, R0)
-        if not isInSafeZone:
+        error, _ = getLeftSide(references[i],  globalParams, currentData, R0)
+        errors.append(error)
+        #isInSafeZone = checkLocalConstraint(references[i],  globalParams, currentData, R0)
+        
+        if error>R0:
             violationCounter += 1
     if sync and violationCounter > 0:
         for i in range(k):
@@ -193,25 +207,20 @@ def updateNodes(globalParams, references, data , distsParams, sync, R0):
             dataQ = allDataQ[i]
             referenceParams = getXYS(dataP, dataQ)
             references[i] = referenceParams
-        S0, x0, y0, w0, w0_norm, B0_inverted = calcWindowParams2D(allDataP, allDataQ) 
+        S0, x0, y0, w0, w0_norm, B0 = calcWindowParams2D(allDataP, allDataQ) 
+        u0 = x0-y0
     globalParams =  w0, B0, u0
-    return violationCounter, globalParams
+    return violationCounter, globalParams, errors
 
 def updateData(allDataP, allDataQ,i,distsParams,p):
+    p=p/2
     mu_p, mu_q, cov_p, cov_q = distsParams
-    dataP = allDataP[i]
-    dataQ = allDataQ[i]
-    dataP, dataQ = (dataP[p:], dataQ[p:])
-    try: 
-        newP = np.random.multivariate_normal(mu_p, cov_p,p)
-    except:
-        pass
+    newP = np.random.multivariate_normal(mu_p, cov_p,p)
     newQ = np.random.multivariate_normal(mu_q, cov_q,p)
-    dataP = np.concatenate((dataP, newP))
-    dataQ = np.concatenate((dataQ, newQ))
-    allDataP[i] = dataP
-    allDataQ[i] = dataQ
-    
+    allDataP[i] = np.concatenate((allDataP[i][p:], newP))
+    allDataQ[i] = np.concatenate((allDataQ[i][p:], newQ))
+        
+
 def chernof(n,p,x):
     return np.exp(-x**2 / (2*n*p*(1-p)))
 

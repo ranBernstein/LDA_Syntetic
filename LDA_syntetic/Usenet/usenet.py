@@ -6,12 +6,10 @@ import copy
 
 k=2
 #L=100
-T = 0.9
-periodSize = 300
-
-numOfchunks=3
+T = 0
+numOfchunks=5
 chunkSize = 300
-clfWindowSize = 100
+clfWindowSize = 900
 initLen = clfWindowSize
 violationThreshold = 0#k-1
 d=2
@@ -29,44 +27,14 @@ for line in dataFile:
     x=  [v=='1' for v in splited[:-1]]
     X.append(x)
     tags.append(tag)
+dataLength = len(X)#numOfchunks*chunkSize
+
+#X = X + X + X
 pca = PCA(n_components=d)
 X = pca.fit_transform(X,tags)
 print(pca.explained_variance_ratio_) 
 
-clf = LDA()
-clf.fit(X, tags)
-print clf.score(X, tags) 
 
-startIndex = 0
-endIndex = startIndex + periodSize
-currX = X[startIndex:endIndex]
-currY = tags[startIndex:endIndex]
-clf.fit(currX, currY)
-print startIndex, endIndex, clf.score(currX, currY) 
-
-startIndex += periodSize 
-endIndex += periodSize
-currX = X[startIndex:endIndex]
-currY = tags[startIndex:endIndex]
-print startIndex, endIndex, clf.score(currX, currY) 
-
-startIndex += periodSize 
-endIndex += periodSize
-currX = X[startIndex:endIndex]
-currY = tags[startIndex:endIndex]
-print startIndex, endIndex, clf.score(currX, currY) 
-
-startIndex += periodSize 
-endIndex += periodSize
-currX = X[startIndex:endIndex]
-currY = tags[startIndex:endIndex]
-print startIndex, endIndex, clf.score(currX, currY) 
-
-startIndex += periodSize 
-endIndex += periodSize
-currX = X[startIndex:endIndex]
-currY = tags[startIndex:endIndex]
-print startIndex, endIndex, clf.score(currX, currY) 
 
 
 
@@ -76,7 +44,7 @@ for i in range(k):
     allDataP.append([])
     allDataQ.append([])
 initLenTime = initLen/k
-for time in range(initLen):
+for time in range(initLenTime):
     violationCounter = 0
     for i in range(k): 
         newPoint =  X[time]
@@ -93,20 +61,7 @@ allDataP = np.array(allDataP)
 allDataQ = np.array(allDataQ)
 S0, x0, y0, w0, w0_norm, B0 = calcWindowParams2D(allDataP, allDataQ)
 u0 = x0-y0
-clf = LDA()
-clf.fit(X[:initLen], tags[:initLen])
-adaClf = LDA()
-adaClf.fit(X[:initLen], tags[:initLen])
-oracleClf = LDA()
-oracleClf.fit(X[:initLen], tags[:initLen])
 
-lastRes = {}
-pred = clf.predict(X[initLen-clfWindowSize:initLen])
-real =  tags[initLen-clfWindowSize:initLen]
-lastRes = np.logical_not(np.logical_xor(pred, real))
-adaLastRes = copy.copy(lastRes)
-oracleLastRes = copy.copy(lastRes)
-dataLength = numOfchunks*chunkSize
 
 length = len(tags)
 syncs = []
@@ -139,6 +94,8 @@ while innerLoopCounter < dataLength:
     violationCounter = 0
     leftValue = []
     for i in range(k): 
+        if innerLoopCounter >= dataLength:
+            break
         newPoint =  X[innerLoopCounter].reshape((1,d))
         tag = tags[innerLoopCounter]
         if tag:
@@ -157,21 +114,7 @@ while innerLoopCounter < dataLength:
             currLeftValue=-R0
         leftValue.append(currLeftValue)
         windowIndex = innerLoopCounter%clfWindowSize
-        res = clf.predict([X[innerLoopCounter]])
-        lastRes[windowIndex] = (res==tag)
-        hits+=(res==tag)
         
-        adaRes = adaClf.predict([X[innerLoopCounter]])
-        adaLastRes[windowIndex] = (adaRes==tag)
-        adaHits+=(adaRes==tag)
-        
-        relevantRange = innerLoopCounter%chunkSize
-        if relevantRange>5:
-            oracleClf.fit(X[innerLoopCounter-relevantRange:innerLoopCounter], 
-                      tags[innerLoopCounter-relevantRange:innerLoopCounter])
-        oracleRes= oracleClf.predict([X[innerLoopCounter]])
-        oracleLastRes[windowIndex] = (oracleRes==tag)
-        oracleHits+=(oracleRes==tag)
         innerLoopCounter+=1
     leftValue = np.max(leftValue)
     leftValue /= R0
@@ -180,22 +123,7 @@ while innerLoopCounter < dataLength:
     S, x, y, w, w_norm, B = calcWindowParams2D(allDataP, allDataQ)
     real = norm(w-w0)
     real /= R0
-    reals.append(real)
-    """
-    c = cosineSimilarity(w0, w) 
-    cosines.append(c)
-    R0s.append(R0)
-    """
-    accuracy = float(np.sum(lastRes))/clfWindowSize
-    accuracies.append(accuracy)
-    adaAccuracy = float(np.sum(adaLastRes))/clfWindowSize
-    adaAccuracies.append(adaAccuracy)
-    oracleAccuracies.append(float(np.sum(oracleLastRes))/clfWindowSize)
-    """
-    if real > leftValue and leftValue>0:
-        currLeftValue, waste = getLeftSide(references[i],  globalParams, 
-                                               currentData, R0, alpha)
-    """        
+    reals.append(real)      
     
     
     if violationCounter >violationThreshold:
@@ -206,7 +134,6 @@ while innerLoopCounter < dataLength:
             references[i] = referenceParams
         S0, x0, y0, w0, w0_norm, B0 = calcWindowParams2D(allDataP, allDataQ)
         u0 = x0-y0
-        adaClf.fit(X[innerLoopCounter-clfWindowSize:innerLoopCounter], tags[innerLoopCounter-clfWindowSize:innerLoopCounter])
         sentIndecies= sentIndecies | set(range(innerLoopCounter-clfWindowSize,innerLoopCounter))
     
         params.append(time)
@@ -226,10 +153,7 @@ while innerLoopCounter < dataLength:
         leftValue = np.max(leftValue)
         leftValue /= R0
         leftValues.append(leftValue)
-        
-        adaAccuracies.append(adaAccuracy)
-        accuracies.append(accuracy)
-        
+
     time+=1
     
 print syncs
@@ -248,8 +172,7 @@ dic['violationThreshold'] = violationThreshold
 dic['clfWindowSize'] = clfWindowSize
 dic['Rounds/syncs_Ratio'] = len(params)/len(syncs)
 #dic['SentInstances'] = len(sentIndecies)
-conceptsDrifts = [chunkSize*i/k for i in range(1, numOfchunks)]
-
+"""
 plt.title(str(dic))
 plt.plot(params, accuracies, label='Accuracy '+str(hits/testDataLen))
 plt.plot(params, adaAccuracies, label='Adaptive accuracy '+str(adaHits/testDataLen))
@@ -263,12 +186,14 @@ plt.xlabel('Round')
 plt.ylabel('Accuracy')
 
 plt.figure()
-
+"""
 #plt.plot(params,cosines, label='True cosine simillarity')
 plt.plot(params,leftValues, label='DLDA Bound')
 plt.plot(params,reals, label='norm(w-w0)')
 #plt.plot(params,R0s, label='R0')
-
+conceptsDrifts = [chunkSize*i/k for i in range(1, numOfchunks)]
+plt.scatter(conceptsDrifts, np.ones_like(conceptsDrifts), c='r', 
+            label='Concepts Drifts', marker='x', s=100)
 plt.scatter(syncs, np.ones_like(syncs), c='b', label='Syncs')
 #[300,600,900,1200]
 #plt.scatter(conceptsDrifts, np.ones_like(conceptsDrifts), c='r', 
