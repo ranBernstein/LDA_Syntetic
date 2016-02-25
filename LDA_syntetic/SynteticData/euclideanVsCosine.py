@@ -8,11 +8,11 @@ import copy
 d=2
 R=2.0
 var=1
-T=0.99
-k=10
-L=1000
+T=0.5
+k=1
+L=800
 dic={}
-timeLength=3*L
+timeLength=L
 p=100
 
 mu_p_0 = np.zeros((d,))
@@ -37,6 +37,7 @@ periodDataP = np.zeros((k,p,d))
 periodDataQ = np.zeros((k,p,d))
 params =  range(timeLength)
 syncs = []
+eucs=[]
 for time in params:
     R0 = getR0(w0_norm, T)
     changeGap = timeLength/4
@@ -73,31 +74,37 @@ for time in params:
         #updateData(allDataP, allDataQ,i,distsParams,p) 
     S, x, y, w, w_norm, B_inverted = calcWindowParams2D(allDataP, allDataQ)
     c = cosineSimilarity(w0, w) 
+    real = norm(w0-w)
     c_per = cosineSimilarity(w0_per, w)
     cosines.append(c)
+    eucs.append(real)
     cosinesPer.append(c_per)    
 dic['Nodes num'] = k
 dic['Window size'] = L
 dic['Dimension'] = d
-dic['PER period'] = p
 dic['Threshold'] = T
 dic['Our syncs'] = len(syncs)
-dic['PER syncs'] = timeLength/p
 font = {
     'family': 'normal',
     'weight': 'normal',
     'size': 22
     }
 import matplotlib
-matplotlib.rc('font', **font) 
+matplotlib.rc('font', **font)
+cv = cosines - np.mean(cosines)
+cv = cv/np.linalg.norm(cv)
+ev = eucs - np.mean(eucs)
+ev = ev/np.linalg.norm(ev)
+
+print np.dot(cv, ev)
 #dic['repeatTime'] = repeatTime
 #dic['timeLength'] = timeLength
 #dic['Var'] = var 
 cosines = 1-np.array(cosines)
 cosinesPer = 1-np.array(cosinesPer)
-plt.plot(params,cosines, label='DLDA')
-plt.plot(params,cosinesPer, label='PER')
-plt.axhline(y=1-T, label='Model Error Threshold', linestyle='--', color='r')
+plt.plot(params,cosines, label='Cosine')
+plt.plot(params,eucs, label='Euclidean')
+plt.axhline(y=1-T, label='Monitoring Error Threshold', linestyle='--', color='r')
 #plt.title(str(dic))
 import inspect, os
 file = (inspect.getfile(inspect.currentframe())).split('\\')[-1]

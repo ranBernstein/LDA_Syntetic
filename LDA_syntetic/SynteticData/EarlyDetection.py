@@ -110,7 +110,7 @@ t = plt.text(1.5, 1, "+", ha="center", va="center", rotation=0, color='r',
 t = plt.text(-1.5, -1, "_", ha="center", va="center", rotation=0, color='b',
             size=80)
 
-plt.annotate("Violation Detection",size=14, xy=(-0.3, -1), xytext=(-0.3, -2),
+plt.annotate("First Violation",size=14, xy=(-0.3, -1), xytext=(-0.3, -2),
             arrowprops=dict(facecolor='black', shrink=0.05),
             )
 

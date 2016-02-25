@@ -193,18 +193,26 @@ dic['L'] = clfWindowSize
 #dic['SentInstances'] = len(sentIndecies)
 dic['R/syncs'] = len(params)/len(syncs)
 
-
-plt.figure()
+fig, ax1 = plt.subplots()
+#plt.figure()
 #plt.plot(params,cosines, label='True cosine simillarity')
-plt.plot(params,leftValues, label='DLDA Bound')
-plt.plot(params,reals, label='norm(w-w0)')
+ax1.plot(params,reals, label='norm(w-w0)')
 #plt.plot(params,R0s, label='R0')
 
-plt.scatter(syncs, np.ones_like(syncs), c='b', label='Syncs')
+ax1.scatter(syncs, np.ones_like(syncs), c='b', label='Syncs')
+ax1.set_xlabel('Round')
+ax1.set_ylabel('Model Drift (in R0 units)')
+ax1.set_ylim(-0.1,1.1)
+for tl in ax1.get_yticklabels():
+    tl.set_color('b')
 plt.legend().draggable()
-plt.xlabel('Round')
-plt.ylabel('Error')
-plt.title(str(dic))
-
-
+#plt.title(str(dic))
+ax2 = ax1.twinx()
+ax2.plot(params,leftValues, label='DLDA Fraction', c='g')
+ax2.set_ylim(-0.1,1.1)
+for tl in ax2.get_yticklabels():
+    tl.set_color('g')
+ax2.set_ylabel('Fraction of violated nodes')
+plt.legend().draggable()
 plt.show() 
+

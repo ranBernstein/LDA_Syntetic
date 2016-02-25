@@ -42,7 +42,8 @@ mu_p = copy.copy(mu_p_0)
 mu_q = copy.copy(mu_q_0)
 cov_p = copy.copy(cov_p_0)
 cov_q = copy.copy(cov_q_0)
-allDataP, allDataQ, references = initNodesData(k,L,d,mu_p_0,mu_q_0,cov_p_0,cov_q_0)
+allDataP, allDataQ, references, _,_ = \
+    initNodesData(k,L,d,mu_p_0,mu_q_0,cov_p_0,cov_q_0)
 S0, x0, y0, w0, w0_norm, B0 = calcWindowParams2D(allDataP, allDataQ)
 u0 = x0-y0
 #cosinesMins = []
@@ -115,7 +116,7 @@ mu_p = copy.copy(mu_p_0)
 mu_q = copy.copy(mu_q_0)
 cov_p = copy.copy(cov_p_0)
 cov_q = copy.copy(cov_q_0)
-allDataP, allDataQ, references = initNodesData(k,L,d,mu_p_0,mu_q_0,cov_p_0,cov_q_0)
+allDataP, allDataQ, references, _,_ = initNodesData(k,L,d,mu_p_0,mu_q_0,cov_p_0,cov_q_0)
 S0, x0, y0, w0, w0_norm, B0 = calcWindowParams2D(allDataP, allDataQ)
 u0 = x0-y0
 changeGap = float(timeLength)/NumberOfChangesInDrift
@@ -186,8 +187,8 @@ errors=newR0s
 #plt.semilogy(errors,msgs, label='DLAD')
 plt.plot(errors,msgs, label='DLDA')
 #plt.title('Drift Data')
-plt.title('Drift Data')
-plt.xlabel('Error')
+#plt.title('Drift Data')
+plt.xlabel('Model Drift')
 #plt.xlabel('Error')
 plt.ylabel('Normalized messages')
 plt.legend().draggable()

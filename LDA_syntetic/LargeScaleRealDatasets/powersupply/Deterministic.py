@@ -5,12 +5,12 @@ from sklearn.decomposition import PCA
 import copy
 import itertools
 
-k=36
+k=4
 #L=400
 T = 0.5
 #numberOfdaysInWindow=250
 #clfWindowSize = numberOfdaysInWindow*24/k
-clfWindowSize = 600
+clfWindowSize = 5000
 #trajWindow= 2000#clfWindowSize*k
 initLen = clfWindowSize*k
 #violationThreshold = k-5
@@ -203,8 +203,8 @@ plt.plot(params,reals, label='norm(w-w0)')
 plt.scatter(syncs, np.ones_like(syncs), c='b', label='Syncs')
 plt.legend().draggable()
 plt.xlabel('Round')
-plt.ylabel('Error')
-plt.title(str(dic))
+plt.ylabel('Model Drift (in R0 units)')
+#plt.title(str(dic))
 
-
+print dic
 plt.show() 

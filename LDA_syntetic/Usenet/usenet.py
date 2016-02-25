@@ -3,6 +3,13 @@ from utils import *
 from sklearn.lda import LDA
 from sklearn.decomposition import PCA
 import copy
+font = {
+    'family': 'normal',
+    'weight': 'normal',
+    'size': 22
+    }
+import matplotlib
+matplotlib.rc('font', **font)
 
 k=2
 #L=100
@@ -192,15 +199,29 @@ plt.plot(params,leftValues, label='DLDA Bound')
 plt.plot(params,reals, label='norm(w-w0)')
 #plt.plot(params,R0s, label='R0')
 conceptsDrifts = [chunkSize*i/k for i in range(1, numOfchunks)]
-plt.scatter(conceptsDrifts, np.ones_like(conceptsDrifts), c='r', 
-            label='Concepts Drifts', marker='x', s=100)
-plt.scatter(syncs, np.ones_like(syncs), c='b', label='Syncs')
+first=True
+for conceptsDrift in conceptsDrifts:
+    if first:
+        first=False
+        plt.axvline(conceptsDrift, linestyle='dotted', color='r', label='Concepts Drifts')
+    else:
+        plt.axvline(conceptsDrift, linestyle='dotted', color='r')
+#plt.scatter(conceptsDrifts, np.ones_like(conceptsDrifts), c='r', 
+#            label='Concepts Drifts', marker='x', s=100)
+first=True
+for sync in syncs:
+    if first:
+        first=False
+        plt.axvline(sync, linestyle='dashed', color='b', label='Syncs')
+    else:
+        plt.axvline(sync,  linestyle='dashed', color='b')
+#plt.scatter(syncs, np.ones_like(syncs), c='b', label='Syncs')
 #[300,600,900,1200]
 #plt.scatter(conceptsDrifts, np.ones_like(conceptsDrifts), c='r', 
 #            label='Concepts Drifts', marker='x', s=100)
 plt.legend().draggable()
 plt.xlabel('Round')
-plt.ylabel('Error')
-plt.title(str(dic))
+plt.ylabel('Model Drift')
+#plt.title(str(dic))
 
 plt.show() 

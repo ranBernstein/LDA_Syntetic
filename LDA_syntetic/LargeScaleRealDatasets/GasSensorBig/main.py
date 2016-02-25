@@ -15,6 +15,13 @@ from sklearn import cross_validation
 from sklearn.cross_validation import train_test_split
 from scipy import stats
 from sklearn.covariance import EllipticEnvelope
+import matplotlib
+font = {
+    'family': 'normal',
+    'weight': 'normal',
+    'size': 22
+    }
+matplotlib.rc('font', **font)
 def filterOut(x):
     x = np.array(x)
     outliers_fraction=0.05
@@ -274,8 +281,8 @@ plt.scatter(syncs, np.ones_like(syncs), c='b', label='Syncs')
 #            label='Concepts Drifts', marker='x', s=100)
 plt.legend().draggable()
 plt.xlabel('Round')
-plt.ylabel('Error')
-plt.title(str(dic))
+plt.ylabel('Model Drift (in R0 units)')
+#plt.title(str(dic))
 
 
 
