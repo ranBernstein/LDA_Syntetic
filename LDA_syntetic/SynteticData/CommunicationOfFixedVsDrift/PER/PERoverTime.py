@@ -5,6 +5,14 @@ from random import sample
 from utils import *
 import copy
 
+font = {
+    'family': 'normal',
+    'weight': 'normal',
+    'size': 22
+    }
+import matplotlib
+matplotlib.rc('font', **font)
+
 d=2
 R=2.0
 var=1
@@ -12,7 +20,7 @@ T=0.99
 k=10
 L=1000
 dic={}
-timeLength=3*L
+timeLength=6*L
 p=100
 
 mu_p_0 = np.zeros((d,))
@@ -72,8 +80,10 @@ for time in params:
 
         #updateData(allDataP, allDataQ,i,distsParams,p) 
     S, x, y, w, w_norm, B_inverted = calcWindowParams2D(allDataP, allDataQ)
-    c = cosineSimilarity(w0, w) 
-    c_per = cosineSimilarity(w0_per, w)
+    #c = cosineSimilarity(w0, w) 
+    #c_per = cosineSimilarity(w0_per, w)
+    c=norm(w0-w)/R0
+    c_per=norm(w0_per-w)/R0
     cosines.append(c)
     cosinesPer.append(c_per)    
 dic['Nodes num'] = k
@@ -83,26 +93,20 @@ dic['PER period'] = p
 dic['Threshold'] = T
 dic['Our syncs'] = len(syncs)
 dic['PER syncs'] = timeLength/p
-font = {
-    'family': 'normal',
-    'weight': 'normal',
-    'size': 22
-    }
-import matplotlib
-matplotlib.rc('font', **font) 
+ 
 #dic['repeatTime'] = repeatTime
 #dic['timeLength'] = timeLength
 #dic['Var'] = var 
-cosines = 1-np.array(cosines)
-cosinesPer = 1-np.array(cosinesPer)
+#cosines = 1-np.array(cosines)
+#cosinesPer = 1-np.array(cosinesPer)
 plt.plot(params,cosines, label='DLDA')
-plt.plot(params,cosinesPer, label='PER')
-plt.axhline(y=1-T, label='Model Error Threshold', linestyle='--', color='r')
+plt.plot(params,cosinesPer, label='PER', linestyle='--')
+plt.axhline(y=1, label='Model Drift Threshold', linestyle='--', color='r')
 #plt.title(str(dic))
 import inspect, os
 file = (inspect.getfile(inspect.currentframe())).split('\\')[-1]
 print file, str(dic)
 plt.xlabel('Round')
-plt.ylabel('Model Drift (Cosine simillarity)')   
+plt.ylabel('Model Drift (R0 units) ')   
 plt.legend().draggable()
 plt.show() 

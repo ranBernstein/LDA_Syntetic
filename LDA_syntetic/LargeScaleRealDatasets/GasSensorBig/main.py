@@ -285,6 +285,32 @@ plt.ylabel('Model Drift (in R0 units)')
 #plt.title(str(dic))
 
 
+plt.figure()
+fig, ax1 = plt.subplots()
+#plt.figure()
+#plt.plot(params,cosines, label='True cosine simillarity')
+ax1.plot(params,reals, label='norm(w-w0)/R0', c='g', linestyle='--')
+#plt.plot(params,R0s, label='R0')
+
+#ax1.scatter(syncs, np.ones_like(syncs), c='b', label='Syncs')
+ax1.axvline(change, color='r', label='Concept Drift')
+ax1.scatter(syncs, np.ones_like(syncs), c='b', label='Syncs')
+ax1.set_xlabel('Round')
+ax1.set_ylabel('Model Drift (in R0 units)')
+ax1.set_ylim(-0.1,1.1)
+for tl in ax1.get_yticklabels():
+    tl.set_color('b')
+plt.legend().draggable()
+#plt.title(str(dic))
+ax2 = ax1.twinx()
+ax2.plot(params,counters, label='Fraction of violated nodes', c='b')
+ax2.set_ylim(-0.1,1.1)
+for tl in ax2.get_yticklabels():
+    tl.set_color('g')
+ax2.set_ylabel('Fraction of violated nodes')
+plt.legend().draggable()
+plt.show() 
+
 
 print "finish"
 plt.show()

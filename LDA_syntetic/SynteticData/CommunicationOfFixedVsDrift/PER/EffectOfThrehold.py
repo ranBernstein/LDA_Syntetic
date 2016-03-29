@@ -76,7 +76,7 @@ errors = R0s
 #plt.scatter(errors,msgs)
 #plt.semilogy(errors,msgs,label='PER')
 plt.figure()
-plt.plot(errors,msgs,label='PER')
+plt.plot(errors,msgs,label='PER', c='g', linestyle='--')
 #Ts = cosinesMins
 msgs = []
 #for T in Ts:
@@ -103,7 +103,7 @@ for R0 in R0s:
 errors=newR0s
 #plt.scatter(errors,msgs)
 #plt.semilogy(errors,msgs, label='DLAD')
-plt.plot(errors,msgs, label='DLAD')
+plt.plot(errors,msgs, label='DLAD', c='b')
 plt.title('Fixed Data')
 print 'Fixed data, '+str(dic)
 

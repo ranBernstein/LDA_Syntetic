@@ -5,12 +5,20 @@ from sklearn.decomposition import PCA
 import copy
 import itertools
 
-k=4
+font = {
+    'family': 'normal',
+    'weight': 'normal',
+    'size': 22
+    }
+import matplotlib
+matplotlib.rc('font', **font)
+
+k=36
 #L=400
 T = 0.5
 #numberOfdaysInWindow=250
 #clfWindowSize = numberOfdaysInWindow*24/k
-clfWindowSize = 5000
+clfWindowSize = 600
 #trajWindow= 2000#clfWindowSize*k
 initLen = clfWindowSize*k
 #violationThreshold = k-5
@@ -197,7 +205,7 @@ dic['Rounds/syncs_Ratio'] = len(params)/len(syncs)
 plt.figure()
 #plt.plot(params,cosines, label='True cosine simillarity')
 plt.plot(params,leftValues, label='DLDA Bound')
-plt.plot(params,reals, label='norm(w-w0)')
+plt.plot(params,reals, label='norm(w-w0)', c='g', linestyle='--')
 #plt.plot(params,R0s, label='R0')
 
 plt.scatter(syncs, np.ones_like(syncs), c='b', label='Syncs')

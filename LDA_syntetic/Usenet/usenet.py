@@ -195,8 +195,8 @@ plt.ylabel('Accuracy')
 plt.figure()
 """
 #plt.plot(params,cosines, label='True cosine simillarity')
-plt.plot(params,leftValues, label='DLDA Bound')
-plt.plot(params,reals, label='norm(w-w0)')
+plt.plot(params,leftValues, label='DLDA Bound', c='b')
+plt.plot(params,reals, label='norm(w-w0)', c='g', linestyle='--')
 #plt.plot(params,R0s, label='R0')
 conceptsDrifts = [chunkSize*i/k for i in range(1, numOfchunks)]
 first=True

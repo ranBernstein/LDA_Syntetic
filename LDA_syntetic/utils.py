@@ -75,7 +75,7 @@ def checkLocalConstraint(localParams,  globalParams, currentData, R0, alpha=1):
 
 def getLeftSide(localParams,  globalParams, currentData, R0, alpha=1):
     x0, y0, S0 = localParams
-    w0, B0, u0 = globalParams
+    w0, B0 = globalParams
     Xp, Xq = currentData
     w0_norm = norm(w0)
     #R0 = getR0(w0_norm, T)
@@ -100,11 +100,12 @@ def getLeftSide(localParams,  globalParams, currentData, R0, alpha=1):
         raise ValueError("local norm(w-w0)>R0")
     """
     E1 = norm(lin.inv(B0+Delta)*delta)
+    """
     E2 = norm((lin.inv(B0+Delta)-B0_inverted)*u0)
     if (E1+E2)>R0:
         violation = "(E1+E2)>R0"
         return (E1+E2), violation
-    
+    """
     B0invDelta = normOperator(B0_inverted*Delta)
     denominator = 1- B0invDelta
     
@@ -176,7 +177,7 @@ def initNodesData(k,L,d,mu_p_0,mu_q_0,cov_p_0,cov_q_0):
     return allDataP, allDataQ, references, allP, allQ
 
 def updateNodes(globalParams, references, data , distsParams, R0, sync=True):
-    w0, B0, u0 = globalParams
+    w0, B0 = globalParams
     allDataP, allDataQ = data
     mu_p, mu_q, cov_p, cov_q = distsParams
     violationCounter = 0
@@ -208,8 +209,7 @@ def updateNodes(globalParams, references, data , distsParams, R0, sync=True):
             referenceParams = getXYS(dataP, dataQ)
             references[i] = referenceParams
         S0, x0, y0, w0, w0_norm, B0 = calcWindowParams2D(allDataP, allDataQ) 
-        u0 = x0-y0
-    globalParams =  w0, B0, u0
+    globalParams =  w0, B0
     return violationCounter, globalParams, errors
 
 def updateData(allDataP, allDataQ,i,distsParams,p):

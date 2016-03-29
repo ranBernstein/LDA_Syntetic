@@ -29,7 +29,7 @@ timeLength=L#10*L
 params = [1,3,10, 30, 100, 300, 1000, 3000, 10000]
 syncs = []
 for k in params:
-    allDataP, allDataQ, references = initNodesData(k,L,d,mu_p_0,mu_q_0,cov_p_0,cov_q_0)
+    allDataP, allDataQ, references,_,_ = initNodesData(k,L,d,mu_p_0,mu_q_0,cov_p_0,cov_q_0)
     S0, x0, y0, w0, w0_norm, B0 = calcWindowParams2D(allDataP, allDataQ)
     u0 = x0-y0
     syncsCounter=0.0
@@ -48,7 +48,7 @@ for k in params:
 
 driftSyncs = []
 for k in params:
-    allDataP, allDataQ, references = initNodesData(k,L,d,mu_p_0,mu_q_0,cov_p_0,cov_q_0)
+    allDataP, allDataQ, references,_,_ = initNodesData(k,L,d,mu_p_0,mu_q_0,cov_p_0,cov_q_0)
     S0, x0, y0, w0, w0_norm, B0 = calcWindowParams2D(allDataP, allDataQ)
     u0=x0-y0
     syncsCounter=0.0
@@ -84,7 +84,7 @@ plt.scatter(params,syncs)
 plt.scatter(params,driftSyncs)
 #plt.semilogy(params,syncs, label='Ours')
 plt.loglog(params,syncs, label='Fixed')
-plt.loglog(params,driftSyncs, label='Drift')
+plt.loglog(params,driftSyncs, label='Drift', c='g', linestyle='--')
 plt.legend().draggable()
 plt.xlabel('Number of Nodes k')
 plt.ylabel('Norm. Msgs')

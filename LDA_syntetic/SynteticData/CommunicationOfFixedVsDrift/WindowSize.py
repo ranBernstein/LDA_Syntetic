@@ -15,7 +15,7 @@ k=2
 dic={}
 #timeLength=10*L
 
-T=0.99
+T=0.9
 mu_p_0 = np.zeros((d,))
 mu_q_0 = np.zeros((d,))
 mu_q_0[0] = R
@@ -25,20 +25,20 @@ mu_p = copy.copy(mu_p_0)
 mu_q = copy.copy(mu_q_0)
 cov_p = copy.copy(cov_p_0)
 cov_q = copy.copy(cov_q_0)
-params = range(20,1221, 150)
+params = range(20,500, 25)
 syncs = []
 for L in params:
     timeLength=10*L
-    allDataP, allDataQ, references = initNodesData(k,L,d,mu_p_0,mu_q_0,cov_p_0,cov_q_0)
-    S0, x0, y0, w0, w0_norm, B0_inverted = calcWindowParams2D(allDataP, allDataQ)
+    allDataP, allDataQ, references,_,_ = initNodesData(k,L,d,mu_p_0,mu_q_0,cov_p_0,cov_q_0)
+    S0, x0, y0, w0, w0_norm, B0 = calcWindowParams2D(allDataP, allDataQ)
     syncsCounter=0.0
     for _ in  range(timeLength):
-        globalParams = k, T, w0, w0_norm, B0_inverted
+        globalParams = w0, B0
         data = allDataP, allDataQ
         distsParams = mu_p, mu_q, cov_p, cov_q
-        violationCounter, globalParams = updateNodes(globalParams, references, 
-                                                     data , distsParams, True)
-        k, T, w0, w0_norm, B0_inverted = globalParams
+        violationCounter, globalParams, errors = \
+            updateNodes(globalParams, references, data , distsParams, True)
+        w0, B0 = globalParams
         #S, x, y, w, w_norm, B_inverted = calcWindowParams2D(allDataP, allDataQ)
         if violationCounter > 0:
             syncsCounter+=1
@@ -46,7 +46,7 @@ for L in params:
 
 driftSyncs = []
 for L in params:
-    allDataP, allDataQ, references = initNodesData(k,L,d,mu_p_0,mu_q_0,cov_p_0,cov_q_0)
+    allDataP, allDataQ, references,_,_ = initNodesData(k,L,d,mu_p_0,mu_q_0,cov_p_0,cov_q_0)
     S0, x0, y0, w0, w0_norm, B0_inverted = calcWindowParams2D(allDataP, allDataQ)
     syncsCounter=0.0
     for time in  range(timeLength):
@@ -55,12 +55,12 @@ for L in params:
         mu_q[0] = R*np.cos(theta)
         mu_q[1] = R*np.sin(theta)
         
-        globalParams = k, T, w0, w0_norm, B0_inverted
+        globalParams = w0, B0 
         data = allDataP, allDataQ
         distsParams = mu_p, mu_q, cov_p, cov_q
-        violationCounter, globalParams = updateNodes(globalParams, references, 
-                                                     data , distsParams, True)
-        k, T, w0, w0_norm, B0_inverted = globalParams
+        violationCounter, globalParams, errors = \
+            updateNodes(globalParams, references, data , distsParams, True)
+        w0, B0  = globalParams
         #S, x, y, w, w_norm, B_inverted = calcWindowParams2D(allDataP, allDataQ)
         if violationCounter > 0:
             syncsCounter+=1
@@ -76,12 +76,12 @@ font = {
     'size': 22
     }
 matplotlib.rc('font', **font)
-plt.scatter(params,syncs)
-plt.scatter(params,driftSyncs)
+#plt.scatter(params,syncs)
+#plt.scatter(params,driftSyncs)
 #plt.semilogy(params,syncs, label='Ours')
-plt.plot(params,syncs, label='Fixed')
-plt.plot(params,driftSyncs, label='Drift')
-plt.legend().draggable()
+#plt.plot(params,syncs, label='Fixed')
+plt.plot(params,driftSyncs, label='Drift')#, c='g', linestyle='--')
+#plt.legend().draggable()
 plt.xlabel('Window Size')
 plt.ylabel('Norm. Msgs')
 import inspect, os

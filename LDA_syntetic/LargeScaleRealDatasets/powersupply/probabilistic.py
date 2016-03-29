@@ -5,6 +5,14 @@ from sklearn.decomposition import PCA
 import copy
 import itertools
 
+font = {
+    'family': 'normal',
+    'weight': 'normal',
+    'size': 22
+    }
+import matplotlib
+matplotlib.rc('font', **font)
+
 k=36
 #L=400
 T = 0.5
@@ -196,7 +204,7 @@ dic['R/syncs'] = len(params)/len(syncs)
 fig, ax1 = plt.subplots()
 #plt.figure()
 #plt.plot(params,cosines, label='True cosine simillarity')
-ax1.plot(params,reals, label='norm(w-w0)')
+ax1.plot(params,reals, label='norm(w-w0)', c='g', linestyle='--')
 #plt.plot(params,R0s, label='R0')
 
 ax1.scatter(syncs, np.ones_like(syncs), c='b', label='Syncs')
@@ -208,7 +216,7 @@ for tl in ax1.get_yticklabels():
 plt.legend().draggable()
 #plt.title(str(dic))
 ax2 = ax1.twinx()
-ax2.plot(params,leftValues, label='DLDA Fraction', c='g')
+ax2.plot(params,leftValues, label='DLDA Fraction', c='b')
 ax2.set_ylim(-0.1,1.1)
 for tl in ax2.get_yticklabels():
     tl.set_color('g')

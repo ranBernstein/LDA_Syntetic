@@ -28,7 +28,7 @@ for d in params:
     mu_q = copy.copy(mu_q_0)
     cov_p = copy.copy(cov_p_0)
     cov_q = copy.copy(cov_q_0)
-    allDataP, allDataQ, references = initNodesData(k,L,d,mu_p_0,mu_q_0,cov_p_0,cov_q_0)
+    allDataP, allDataQ, references,_,_ = initNodesData(k,L,d,mu_p_0,mu_q_0,cov_p_0,cov_q_0)
     S0, x0, y0, w0, w0_norm, B0 = calcWindowParams2D(allDataP, allDataQ)
     u0 = x0-y0
     syncsCounter=0.0
@@ -57,7 +57,7 @@ for d in params:
     mu_q = copy.copy(mu_q_0)
     cov_p = copy.copy(cov_p_0)
     cov_q = copy.copy(cov_q_0)
-    allDataP, allDataQ, references = initNodesData(k,L,d,mu_p_0,mu_q_0,cov_p_0,cov_q_0)
+    allDataP, allDataQ, references,_,_ = initNodesData(k,L,d,mu_p_0,mu_q_0,cov_p_0,cov_q_0)
     S0, x0, y0, w0, w0_norm, B0 = calcWindowParams2D(allDataP, allDataQ)
     u0=x0-y0
     syncsCounter=0.0
@@ -97,7 +97,7 @@ plt.scatter(params,syncs)
 plt.scatter(params,driftSyncs)
 #plt.semilogy(params,syncs, label='Ours')
 plt.plot(params,syncs, label='Fixed')
-plt.plot(params,driftSyncs, label='Drift')
+plt.plot(params,driftSyncs, label='Drift', c='g', linestyle='--')
 plt.legend().draggable()
 plt.xlabel('Dimension')
 plt.ylabel('Norm. Msgs')
