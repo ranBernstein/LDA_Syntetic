@@ -132,15 +132,11 @@ while innerLoopCounter < dataLength-k+1:
             allDataQFlat.append(X[innerLoopCounter])
 
         x0_i, y0_i, S0_i = references[i]
-        globalParams=w0, B0, u0
+        globalParams=w0, B0
         currentData=allDataP[i], allDataQ[i]
-        try:
-            currLeftValue, w2 = getLeftSide(references[i],  globalParams, currentData, R0,alpha)
-            if currLeftValue>R0:
-                violationCounter += 1
-        except:
+        currLeftValue, w2 = getLeftSide(references[i],  globalParams, currentData, R0,alpha)
+        if currLeftValue>R0:
             violationCounter += 1
-            currLeftValue=-R0
         leftValue.append(currLeftValue/R0)
         windowIndex = innerLoopCounter%clfWindowSize
         res = clf.predict([X[innerLoopCounter]])
@@ -204,19 +200,19 @@ dic['R/syncs'] = len(params)/len(syncs)
 fig, ax1 = plt.subplots()
 #plt.figure()
 #plt.plot(params,cosines, label='True cosine simillarity')
-ax1.plot(params,reals, label='norm(w-w0)', c='g', linestyle='--')
+ax1.plot(params,reals, label='$||w-w_0||$', c='b', linestyle='--', linewidth=3)
 #plt.plot(params,R0s, label='R0')
 
-ax1.scatter(syncs, np.ones_like(syncs), c='b', label='Syncs')
+ax1.scatter(syncs, np.ones_like(syncs), c='black', label='Syncs', s=80)
 ax1.set_xlabel('Round')
-ax1.set_ylabel('Model Drift (in R0 units)')
+ax1.set_ylabel('Fraction of allowed error')
 ax1.set_ylim(-0.1,1.1)
 for tl in ax1.get_yticklabels():
     tl.set_color('b')
 plt.legend().draggable()
 #plt.title(str(dic))
 ax2 = ax1.twinx()
-ax2.plot(params,leftValues, label='DLDA Fraction', c='b')
+ax2.plot(params,leftValues, label='DLDA Fraction', c='g')
 ax2.set_ylim(-0.1,1.1)
 for tl in ax2.get_yticklabels():
     tl.set_color('g')

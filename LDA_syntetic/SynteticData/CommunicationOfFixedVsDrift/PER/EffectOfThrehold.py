@@ -88,7 +88,7 @@ for R0 in R0s:
         data = allDataP, allDataQ
         distsParams = mu_p, mu_q, cov_p, cov_q
         #R0 = getR0(w0_norm, T)
-        globalParams=w0, B0, u0
+        globalParams=w0, B0
         violationCounter, globalParams, errors = \
             updateNodes(globalParams, references, data, distsParams, R0)
         S, x, y, w, w_norm, B = calcWindowParams2D(allDataP, allDataQ)
@@ -96,7 +96,7 @@ for R0 in R0s:
         real.append(r)
         if violationCounter > 0:
             syncs+=1
-        w0, B0, u0 = globalParams
+        w0, B0 = globalParams
     newR0s.append(np.max(real))
     msgs.append(syncs/timeLength)
 
@@ -152,7 +152,7 @@ msgs = [1.0/p for p in periods]
 #plt.scatter(errors,msgs)
 #plt.semilogy(errors,msgs,label='PER')
 plt.figure()
-plt.plot(errors,msgs,label='PER')
+plt.plot(errors,msgs,label='PER', c='g', linestyle='--')
 #Ts = cosinesMins
 msgs = []
 #for T in Ts:
@@ -185,7 +185,7 @@ for R0 in R0s:
 errors=newR0s
 #plt.scatter(errors,msgs)
 #plt.semilogy(errors,msgs, label='DLAD')
-plt.plot(errors,msgs, label='DLDA')
+plt.plot(errors,msgs, label='DLDA', c='b')
 #plt.title('Drift Data')
 #plt.title('Drift Data')
 plt.xlabel('Model Drift')

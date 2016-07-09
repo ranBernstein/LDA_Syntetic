@@ -218,7 +218,7 @@ while innerLoopCounter < dataLength-k+1:
         else:
             allDataQ[i] = np.concatenate((allDataQ[i][1:], newPoint))
         #x0_i, y0_i, S0_i = references[i]
-        globalParams=w0, B0, u0
+        globalParams=w0, B0
         currentData=allDataP[i], allDataQ[i]
         try:
             currLeftValue, w2 = getLeftSide(references[i],  globalParams, currentData, R0*beta,alpha)
@@ -263,7 +263,7 @@ if len(syncs) >0:
     dic['Rounds/syncs_Ratio'] = len(params)/len(syncs)
 dic['RoundsPerPeriod'] = nodePeriodSize
 
-
+"""
 plt.figure()
 #plt.plot(params,cosines, label='True cosine simillarity')
 plt.plot(params,counters, label='Fraction of violated nodes')
@@ -284,33 +284,31 @@ plt.xlabel('Round')
 plt.ylabel('Model Drift (in R0 units)')
 #plt.title(str(dic))
 
-
-plt.figure()
+plt.show()
+"""
 fig, ax1 = plt.subplots()
 #plt.figure()
 #plt.plot(params,cosines, label='True cosine simillarity')
-ax1.plot(params,reals, label='norm(w-w0)/R0', c='g', linestyle='--')
+ax1.axvline(change, color='red', label='Change in the data', linewidth=5.0)
+ax1.plot(params,reals, label='$||(w-w_0)||$', c='g', linestyle='--')
+ax1.plot(params,counters, label='Fraction of violated nodes', c='b')
+
 #plt.plot(params,R0s, label='R0')
 
 #ax1.scatter(syncs, np.ones_like(syncs), c='b', label='Syncs')
-ax1.axvline(change, color='r', label='Concept Drift')
-ax1.scatter(syncs, np.ones_like(syncs), c='b', label='Syncs')
+print "change", change
+ax1.scatter(syncs, np.ones_like(syncs), c='black', label='Syncs', s=80)
 ax1.set_xlabel('Round')
-ax1.set_ylabel('Model Drift (in R0 units)')
+ax1.set_ylabel('Fraction of allowed error')
 ax1.set_ylim(-0.1,1.1)
 for tl in ax1.get_yticklabels():
-    tl.set_color('b')
+    tl.set_color('g')
 plt.legend().draggable()
 #plt.title(str(dic))
 ax2 = ax1.twinx()
-ax2.plot(params,counters, label='Fraction of violated nodes', c='b')
+#ax2.plot(params,counters, label='Fraction of violated nodes', c='b')
 ax2.set_ylim(-0.1,1.1)
 for tl in ax2.get_yticklabels():
-    tl.set_color('g')
+    tl.set_color('b')
 ax2.set_ylabel('Fraction of violated nodes')
-plt.legend().draggable()
 plt.show() 
-
-
-print "finish"
-plt.show()

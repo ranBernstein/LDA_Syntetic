@@ -37,7 +37,6 @@ cosinesPer = []
 time=0
 allDataP, allDataQ, references,_,_ = initNodesData(k,L,d,mu_p_0,mu_q_0,cov_p_0,cov_q_0)
 S0, x0, y0, w0, w0_norm, B0 = calcWindowParams2D(allDataP, allDataQ)
-u0 = x0-y0
 S0_per, x0_per, y0_per, w0_per, w0_norm_per, \
     B0_per = calcWindowParams2D(allDataP, allDataQ)
 u0_per = x0_per - y0_per
@@ -60,7 +59,7 @@ for time in params:
         newQ = np.random.multivariate_normal(mu_q, cov_q,1)
         allDataQ[i] = np.concatenate((allDataQ[i][1:], newQ))
         currentData=allDataP[i], allDataQ[i]
-        globalParams = w0, B0, u0 
+        globalParams = w0, B0
         isInSafeZone = checkLocalConstraint(references[i],  
                 globalParams, currentData, R0, alpha=1)
         #isInSafeZone = checkLocalConstraint(S0_i, x0_i, y0_i, w0_norm, \
@@ -100,8 +99,9 @@ dic['PER syncs'] = timeLength/p
 #cosines = 1-np.array(cosines)
 #cosinesPer = 1-np.array(cosinesPer)
 plt.plot(params,cosines, label='DLDA')
-plt.plot(params,cosinesPer, label='PER', linestyle='--')
-plt.axhline(y=1, label='Model Drift Threshold', linestyle='--', color='r')
+plt.plot(params,cosinesPer, label='PER', linestyle='--', linewidth=3)
+plt.axhline(y=1, label='Model Drift Threshold', \
+            linestyle='--', color='r', linewidth=3)
 #plt.title(str(dic))
 import inspect, os
 file = (inspect.getfile(inspect.currentframe())).split('\\')[-1]

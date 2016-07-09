@@ -13,12 +13,14 @@ font = {
 import matplotlib
 matplotlib.rc('font', **font)
 
-k=36
+k=4
+#k=36
 #L=400
 T = 0.5
 #numberOfdaysInWindow=250
 #clfWindowSize = numberOfdaysInWindow*24/k
-clfWindowSize = 600
+clfWindowSize = 5000
+#clfWindowSize = 600
 #trajWindow= 2000#clfWindowSize*k
 initLen = clfWindowSize*k
 #violationThreshold = k-5
@@ -132,14 +134,11 @@ while innerLoopCounter < dataLength-k+1:
             allDataQFlat.append(X[innerLoopCounter])
 
         x0_i, y0_i, S0_i = references[i]
-        globalParams=w0, B0, u0
+        globalParams=w0, B0
         currentData=allDataP[i], allDataQ[i]
-        try:
-            currLeftValue, w2 = getLeftSide(references[i],  
-                globalParams, currentData, R0,alpha)
-            if currLeftValue>R0:
-                violationCounter += 1
-        except:
+        currLeftValue, w2 = getLeftSide(references[i],  
+            globalParams, currentData, R0,alpha)
+        if currLeftValue>R0:
             violationCounter += 1
             currLeftValue=-R0
         leftValue.append(currLeftValue/R0)
@@ -205,13 +204,13 @@ dic['Rounds/syncs_Ratio'] = len(params)/len(syncs)
 plt.figure()
 #plt.plot(params,cosines, label='True cosine simillarity')
 plt.plot(params,leftValues, label='DLDA Bound')
-plt.plot(params,reals, label='norm(w-w0)', c='g', linestyle='--')
+plt.plot(params,reals, label='$||w-w_0||$', c='g', linestyle='--', linewidth=3)
 #plt.plot(params,R0s, label='R0')
 
-plt.scatter(syncs, np.ones_like(syncs), c='b', label='Syncs')
+plt.scatter(syncs, np.ones_like(syncs), c='black', label='Syncs', s=80)
 plt.legend().draggable()
 plt.xlabel('Round')
-plt.ylabel('Model Drift (in R0 units)')
+plt.ylabel('Fraction of allowed error')
 #plt.title(str(dic))
 
 print dic

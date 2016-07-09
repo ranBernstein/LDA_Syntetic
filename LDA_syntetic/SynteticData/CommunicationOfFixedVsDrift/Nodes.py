@@ -26,7 +26,7 @@ mu_q = copy.copy(mu_q_0)
 cov_p = copy.copy(cov_p_0)
 cov_q = copy.copy(cov_q_0)
 timeLength=L#10*L
-params = [1,3,10, 30, 100, 300, 1000, 3000, 10000]
+params = [1,3,10, 30, 100, 300, 900, 2700, 5000]
 syncs = []
 for k in params:
     allDataP, allDataQ, references,_,_ = initNodesData(k,L,d,mu_p_0,mu_q_0,cov_p_0,cov_q_0)
@@ -35,12 +35,12 @@ for k in params:
     syncsCounter=0.0
     for _ in  range(timeLength):
         R0 = getR0(w0_norm, T)
-        globalParams = w0, B0, u0
+        globalParams = w0, B0
         data = allDataP, allDataQ
         distsParams = mu_p, mu_q, cov_p, cov_q
         violationCounter, globalParams, errors = updateNodes(globalParams, 
             references, data , distsParams, R0)
-        w0, B0, u0 = globalParams
+        w0, B0 = globalParams
         #S, x, y, w, w_norm, B_inverted = calcWindowParams2D(allDataP, allDataQ)
         if violationCounter > 0:
             syncsCounter+=1
@@ -59,12 +59,12 @@ for k in params:
         mu_q[0] = R*np.cos(theta)
         mu_q[1] = R*np.sin(theta)
         
-        globalParams = w0, B0, u0
+        globalParams = w0, B0
         data = allDataP, allDataQ
         distsParams = mu_p, mu_q, cov_p, cov_q
         violationCounter, globalParams, errors = updateNodes(globalParams, references, 
                                                      data , distsParams, R0)
-        w0, B0, u0 = globalParams
+        w0, B0 = globalParams
         #S, x, y, w, w_norm, B_inverted = calcWindowParams2D(allDataP, allDataQ)
         if violationCounter > 0:
             syncsCounter+=1
@@ -86,6 +86,7 @@ plt.scatter(params,driftSyncs)
 plt.loglog(params,syncs, label='Fixed')
 plt.loglog(params,driftSyncs, label='Drift', c='g', linestyle='--')
 plt.legend().draggable()
+plt.xlim(0, 10000)
 plt.xlabel('Number of Nodes k')
 plt.ylabel('Norm. Msgs')
 import inspect, os

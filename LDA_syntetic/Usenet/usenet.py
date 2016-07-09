@@ -110,7 +110,7 @@ while innerLoopCounter < dataLength:
         else:
             allDataQ[i] = np.concatenate((allDataQ[i][1:], newPoint))
 
-        globalParams=w0, B0, u0
+        globalParams=w0, B0
         currentData=allDataP[i], allDataQ[i]
         try:
             currLeftValue, w2 = getLeftSide(references[i],  globalParams, currentData, R0,alpha)
@@ -152,7 +152,7 @@ while innerLoopCounter < dataLength:
         for i in range(k): 
             #x0_i, y0_i, S0_i = references[i]
             #localParams=S0_i, x0_i, y0_i
-            globalParams=w0, B0, u0
+            globalParams=w0, B0
             currentData=allDataP[i], allDataQ[i]
             currLeftValue, waste = getLeftSide(references[i],  globalParams, 
                                                currentData, R0, alpha)
@@ -195,33 +195,33 @@ plt.ylabel('Accuracy')
 plt.figure()
 """
 #plt.plot(params,cosines, label='True cosine simillarity')
-plt.plot(params,leftValues, label='DLDA Bound', c='b')
-plt.plot(params,reals, label='norm(w-w0)', c='g', linestyle='--')
+plt.plot(params,leftValues, label='DLDA Bound', c='b', linewidth=3.0)
+plt.plot(params,reals, label='$||w-w_0||$', c='g', linestyle='--', linewidth=3.0)
 #plt.plot(params,R0s, label='R0')
 conceptsDrifts = [chunkSize*i/k for i in range(1, numOfchunks)]
 first=True
 for conceptsDrift in conceptsDrifts:
     if first:
         first=False
-        plt.axvline(conceptsDrift, linestyle='dotted', color='r', label='Concepts Drifts')
+        plt.axvline(conceptsDrift, linestyle='dotted', color='r', label='Data change', linewidth=3.0)
     else:
-        plt.axvline(conceptsDrift, linestyle='dotted', color='r')
+        plt.axvline(conceptsDrift, linestyle='dotted', color='r', linewidth=3.0)
 #plt.scatter(conceptsDrifts, np.ones_like(conceptsDrifts), c='r', 
 #            label='Concepts Drifts', marker='x', s=100)
 first=True
 for sync in syncs:
     if first:
         first=False
-        plt.axvline(sync, linestyle='dashed', color='b', label='Syncs')
+        plt.axvline(sync, linestyle='dashed', color='black', label='Syncs', linewidth=3.0)
     else:
-        plt.axvline(sync,  linestyle='dashed', color='b')
+        plt.axvline(sync,  linestyle='dashed', color='black', linewidth=3.0)
 #plt.scatter(syncs, np.ones_like(syncs), c='b', label='Syncs')
 #[300,600,900,1200]
 #plt.scatter(conceptsDrifts, np.ones_like(conceptsDrifts), c='r', 
 #            label='Concepts Drifts', marker='x', s=100)
 plt.legend().draggable()
 plt.xlabel('Round')
-plt.ylabel('Model Drift')
+plt.ylabel('Fraction of aloowed error')
 #plt.title(str(dic))
 
 plt.show() 

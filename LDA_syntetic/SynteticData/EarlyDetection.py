@@ -15,7 +15,7 @@ matplotlib.rc('font', **font)
 d=2
 R=1.0
 var=0.001
-T=0.5#0.99
+T=0.5
 k=2
 L=4000
 dic={}
@@ -51,6 +51,7 @@ clf.fit(X,y)
 timeLength=16
 params =  range(timeLength)
 first = True
+notFoundViolation = True
 for time in params:
     R0 = getR0(w0_norm, T)
 
@@ -70,10 +71,13 @@ for time in params:
         allDataP[i] = np.concatenate((allDataP[i][1:], newP))        
         allDataQ[i] = np.concatenate((allDataQ[i][1:], newQ))
         currentData=allDataP[i], allDataQ[i]
-        globalParams = w0, B0, u0 
+        globalParams = w0, B0
         v,_ = getLeftSide(references[i],  
                 globalParams, currentData, R0, alpha=1)
         print "v", v/R0
+        if(v/R0 > 1) and notFoundViolation:
+            firstViolatedX = newP
+            notFoundViolation = False
     #X = newP.tolist() + newQ.tolist()
     #y= np.ones().tolist()+(-1*np.ones()).tolist()
     print "score", clf.score(X,y)
@@ -88,6 +92,7 @@ for time in params:
     #plt.scatter(X[:,0], X[:,1], c='b')
     if first:
         plt.plot(xx, yy, 'k-', label="Classifier")
+        first=False
     plt.scatter(Xp[:,0],Xp[:,1], s=150, c='b', marker='_')
     plt.scatter(Xq[:,0],Xq[:,1], s=150, c='r', marker='+')
     theta += np.pi/30
@@ -95,27 +100,35 @@ for time in params:
     mu_q[1] = R*np.sin(theta)
     mu_p[0] = -R*np.cos(theta)
     mu_p[1] = -R*np.sin(theta)
-t = plt.text(-0.9, -0.7, "t0", ha="center", va="center", rotation=0,
-            size=14)
+t = plt.text(-1.1, -0.7, "$t_{I}$", ha="center", va="center", rotation=0,
+            size=20)
 
-t = plt.text(1, 0.7, "t1", ha="center", va="center", rotation=0,
-            size=14)
-t = plt.text(1.1, -0.7, "t_last", ha="center", va="center", rotation=0,
-            size=14)
-t = plt.text(-1.2, 0.7, "t_last-1", ha="center", va="center", rotation=0,
-            size=14)
+#t = plt.text(1, 0.7, "t1", ha="center", va="center", rotation=0,size=14)
+t = plt.text(1.1, -0.7, "$t_{L}$", ha="center", va="center", rotation=0,
+            size=20)
+
+
+t = plt.text(1.1, 0.7, "$t_{I}$", ha="center", va="center", rotation=0,
+            size=20)
+
+#t = plt.text(1, 0.7, "t1", ha="center", va="center", rotation=0,size=14)
+t = plt.text(-1.1, 0.7, "$t_{L}$", ha="center", va="center", rotation=0,
+            size=20)
+#t = plt.text(-1.2, 0.7, "t_last-1", ha="center", va="center", rotation=0,size=14)
 
 t = plt.text(1.5, 1, "+", ha="center", va="center", rotation=0, color='r',
             size=80)
 t = plt.text(-1.5, -1, "_", ha="center", va="center", rotation=0, color='b',
             size=80)
 
-plt.annotate("First Violation",size=14, xy=(-0.3, -1), xytext=(-0.3, -2),
+#plt.annotate("First Violation",size=14, xy=(-0.3, -1), xytext=(-0.3, -2),
+#            arrowprops=dict(facecolor='black', shrink=0.05),
+#            )
+plt.annotate("First Violation",size=14, xy=firstViolatedX[0], xytext=(-0.3, -2),
             arrowprops=dict(facecolor='black', shrink=0.05),
             )
 
-
-#plt.legend().draggable()
+plt.legend().draggable()
 plt.xlabel('Feature 1')
 plt.ylabel('Feature 2')
 plt.show()
