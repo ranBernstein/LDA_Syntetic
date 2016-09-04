@@ -107,6 +107,6 @@ import inspect, os
 file = (inspect.getfile(inspect.currentframe())).split('\\')[-1]
 print file, str(dic)
 plt.xlabel('Round')
-plt.ylabel('Model Drift (R0 units) ')   
+plt.ylabel('$||w-w_0||$')   
 plt.legend().draggable()
 plt.show() 
